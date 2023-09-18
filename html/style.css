@@ -50,7 +50,7 @@ select {
     z-index: 1;
     background-color: var(--BGCOLOR1);
 }
-.adsbx-selected-bg:before {
+.airplanes-live-selected-bg:before {
     content: ' ';
     position:absolute;
     display:block;

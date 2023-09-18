@@ -68,7 +68,6 @@
 // carto_dark_all
 // carto_dark_nolabels
 // gibs
-// osm_adsbx
 // chartbundle_sec: "Sectional Charts",
 // chartbundle_tac: "Terminal Area Charts",
 // chartbundle_hel: "Helicopter Charts",
@@ -235,7 +234,7 @@ BingMapsAPIKey = null;
 // imageConfigText = "";
 
 //flightawareLinks = false;
-//shareBaseUrl = 'https://globe.adsbexchange.com/';
+// shareBaseUrl = 'https://globe.airplanes.live/';
 // planespottersLinks = false;
 
 // show links to various registration websites (not all countries)

@@ -61,30 +61,16 @@ function createBaseLayers() {
         }));
     }
 
-    if (adsbexchange) {
-        world.push(new ol.layer.Tile({
-            source: new ol.source.OSM({
-                "url" : "https://map.adsbexchange.com/mapproxy/tiles/1.0.0/osm/osm_grid/{z}/{x}/{y}.png",
-                attributionsCollapsible: false,
-                maxZoom: 16,
-                transition: tileTransition,
-            }),
-            name: 'osm_adsbx',
-            title: 'OpenStreetMap ADSBx',
-            type: 'base',
-        }));
-    } else {
-        world.push(new ol.layer.Tile({
-            source: new ol.source.OSM({
-                maxZoom: 17,
-                attributionsCollapsible: false,
-                transition: tileTransition,
-            }),
-            name: 'osm',
-            title: 'OpenStreetMap',
-            type: 'base',
-        }));
-    }
+    world.push(new ol.layer.Tile({
+        source: new ol.source.OSM({
+            maxZoom: 17,
+            attributionsCollapsible: false,
+            transition: tileTransition,
+        }),
+        name: 'osm',
+        title: 'OpenStreetMap',
+        type: 'base',
+    }));
 
     let basemap_id = "rastertiles/voyager";
     world.push(new ol.layer.Tile({
@@ -101,7 +87,7 @@ function createBaseLayers() {
         type: 'base',
     }));
 
-    if (!adsbexchange) {
+    if (!airplaneslive) {
         world.push(new ol.layer.Tile({
             source: new ol.source.OSM({
                 "url" : "https://{a-d}.tile.openstreetmap.de/{z}/{x}/{y}.png",
@@ -115,61 +101,7 @@ function createBaseLayers() {
         }));
     }
 
-    if (false && adsbexchange) {
-        jQuery('#premium_text').updateText('Premium active!');
-        world.push(new ol.layer.Tile({
-            source: new ol.source.XYZ({
-                url: "https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=HyIQ6A88uTDdX4n4MNVY",
-                attributions: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
-                attributionsCollapsible: false,
-                maxZoom: 19,
-                transition: tileTransition,
-            }),
-            name: 'maptiler_sat',
-            title: 'Satellite (Premium)',
-            type: 'base',
-        }));
-        world.push(new ol.layer.Tile({
-            source: new ol.source.XYZ({
-                url: "https://api.maptiler.com/maps/hybrid/256/{z}/{x}/{y}.jpg?key=HyIQ6A88uTDdX4n4MNVY",
-                attributions: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
-                attributionsCollapsible: false,
-                maxZoom: 19,
-                transition: tileTransition,
-            }),
-            name: 'maptiler_hybrid',
-            title: 'Hybrid Sat. (Premium)',
-            type: 'base',
-        }));
-        world.push(new ol.layer.Tile({
-            source: new ol.source.XYZ({
-                url: "https://api.maptiler.com/maps/777ad15e-3e64-4edf-8e86-84ba16e50961/256/{z}/{x}/{y}.png?key=geutV4UHZB7QFdlzE3w4",
-                attributions: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
-                attributionsCollapsible: false,
-                maxZoom: 19,
-                transition: tileTransition,
-            }),
-            name: 'maptiler_custom',
-            title: 'ADSBx Custom (Premium)',
-            type: 'base',
-        }));
-    }
-    if (0 && adsbexchange) {
-        world.push(new ol.layer.Tile({
-            source: new ol.source.XYZ({
-                url: "https://api.maptiler.com/maps/256/{z}/{x}/{y}.png?key=HyIQ6A88uTDdX4n4MNVY",
-                attributions: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
-                attributionsCollapsible: false,
-                maxZoom: 16,
-                transition: tileTransition,
-            }),
-            name: 'maptiler_english',
-            title: 'English MapTiler (testing)',
-            type: 'base',
-        }));
-    }
-
-    if (!adsbexchange) {
+    if (!airplaneslive) {
         world.push(new ol.layer.Tile({
             source: new ol.source.XYZ({
                 url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -222,32 +154,6 @@ function createBaseLayers() {
         // ol-mapbox-style plugin packed in with ol ... (kinda ugly)
         //ol.applyStyle(english_map, "https://tiles.adsb.co/api/maps/basic/style.json");
         world.push(english_map);
-    }
-
-    if (0) {
-        let vtlayer = new ol.layer.VectorTile({
-            source: new ol.source.VectorTile({
-                url: "http://test02.dev.adsbexchange.com/tiles/{z}/{x}/{y}.pbf",
-                format: new ol.format.MVT(),
-                maxZoom: 9,
-                transition: tileTransition,
-            }),
-            name: 'vtlayer',
-            title: 'TEST VECTOR',
-            type: 'base',
-            renderMode: 'image',
-        });
-
-        jQuery.ajax({
-            url: 'osm-liberty/style.json',
-            dataType: 'json',
-            layer: vtlayer,
-            cache: false,
-        }).done(function(glStyle) {
-            ol.mbApplyStyle(this.layer, glStyle, 'openmaptiles');
-        });
-
-        world.push(vtlayer);
     }
 
     world.push(new ol.layer.Tile({
@@ -336,7 +242,7 @@ function createBaseLayers() {
 
     if (ChartBundleLayers) {
 
-        let chartbundleTypesDirect = {
+        let chartbundleTypes = {
             sec: "Sectional Charts",
             enrh: "IFR Enroute High Charts",
 
@@ -344,42 +250,11 @@ function createBaseLayers() {
             hel: "Helicopter Charts",
             enrl: "IFR Enroute Low Charts",
             enra: "IFR Area Charts",
+
             secgrids: "Sect. w/ SAR grid",
         };
-        let chartbundleTypesAx = {
-        };
-        if (adsbexchange) {
-            chartbundleTypesDirect = {
-                secgrids: "Sect. w/ SAR grid",
-            };
-            chartbundleTypesAx = {
-                sec: "Sectional Charts",
-                enrh: "IFR Enroute High Charts",
 
-                tac: "Terminal Area Charts",
-                hel: "Helicopter Charts",
-                enrl: "IFR Enroute Low Charts",
-                enra: "IFR Area Charts",
-            };
-        }
-
-        for (let type in chartbundleTypesAx) {
-            us.push(new ol.layer.Tile({
-                source: new ol.source.OSM({
-                    url: 'https://map.adsbexchange.com/mapproxy/tiles/1.0.0/'+ type + '/osm_grid/{z}/{x}/{y}.png',
-                    projection: 'EPSG:3857',
-                    attributions: 'Tiles courtesy of <a href="http://www.chartbundle.com/">ChartBundle</a>',
-                    attributionsCollapsible: false,
-                    maxZoom: 11,
-                    transition: tileTransition,
-                }),
-                name: 'chartbundle_' + type,
-                title: chartbundleTypesAx[type],
-                type: 'base',
-                group: 'chartbundle'}));
-        }
-
-        for (let type in chartbundleTypesDirect) {
+        for (let type in chartbundleTypes) {
             us.push(new ol.layer.Tile({
                 source: new ol.source.TileWMS({
                     url: 'https://wms.chartbundle.com/wms',
@@ -387,11 +262,11 @@ function createBaseLayers() {
                     projection: 'EPSG:3857',
                     attributions: 'Tiles courtesy of <a href="http://www.chartbundle.com/">ChartBundle</a>',
                     attributionsCollapsible: false,
-                    maxZoom: 12, // doesn't work for WMS
+                    maxZoom: 12, // Doesn't work for WMS
                     transition: tileTransition,
                 }),
                 name: 'chartbundle_' + type,
-                title: chartbundleTypesDirect[type],
+                title: chartbundleTypes[type],
                 type: 'base',
                 group: 'chartbundle'}));
         }
@@ -399,8 +274,8 @@ function createBaseLayers() {
 
     world.push(new ol.layer.Tile({
         source: new ol.source.XYZ({
-            "url" : "https://map.adsbexchange.com/mapproxy/tiles/1.0.0/openaip/ul_grid/{z}/{x}/{y}.png",
-            "attributions" : "openAIP.net",
+            "url" : 'https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=25409b62155e81f7ddc2f1a99d476d07',
+            "attributions" : '<a href="https://www.openaip.net">openAIP.net</a>',
             attributionsCollapsible: false,
             maxZoom: 12,
             transition: tileTransition,
@@ -529,6 +404,61 @@ function createBaseLayers() {
         europe.push(dwd);
     }
 
+    if (true) {
+        const getRainviewerLayers = async function(key) {
+            const response = await fetch("https://api.rainviewer.com/public/weather-maps.json", {credentials: "omit",});
+            const jsonData = await response.json();
+            return jsonData[key];
+        }
+
+        const rainviewerRadar = new ol.layer.Tile({
+            name: 'rainviewer_radar',
+            title: 'RainViewer Radar',
+            type: 'overlay',
+            opacity: 0.35,
+            visible: false,
+            zIndex: 99,
+        });
+        const refreshRainviewerRadar = async function() {
+            const latestLayer = await getRainviewerLayers('radar');
+            const rainviewerRadarSource = new ol.source.XYZ({
+                url: 'https://tilecache.rainviewer.com/v2/radar/' + latestLayer.past[latestLayer.past.length - 1].time + '/512/{z}/{x}/{y}/4/1_1.png',
+                attributions: '<a href="https://www.rainviewer.com/api.html" target="_blank">RainViewer.com</a>',
+                attributionsCollapsible: false,
+                maxZoom: 20,
+            });
+            rainviewerRadar.setSource(rainviewerRadarSource);
+        };
+        
+        refreshRainviewerRadar();
+        window.setInterval(refreshRainviewerRadar, 2 * 60 * 1000);
+        world.push(rainviewerRadar);
+
+        
+
+        const rainviewerClouds = new ol.layer.Tile({
+            name: 'rainviewer_clouds',
+            title: 'RainViewer Clouds',
+            type: 'overlay',
+            opacity: 0.35,
+            visible: false,
+            zIndex: 99,
+        });
+        const refreshRainviewerClouds = async function() {
+            const latestLayer = await getRainviewerLayers('satellite');
+            const rainviewerCloudsSource = new ol.source.XYZ({
+                url: 'https://tilecache.rainviewer.com/' + latestLayer.infrared[latestLayer.infrared.length - 1].path + '/512/{z}/{x}/{y}/0/0_0.png',
+                attributions: '<a href="https://www.rainviewer.com/api.html" target="_blank">RainViewer.com</a>',
+                attributionsCollapsible: false,
+                maxZoom: 20,
+            });
+            rainviewerClouds.setSource(rainviewerCloudsSource);
+        };
+        
+        refreshRainviewerClouds();
+        window.setInterval(refreshRainviewerClouds, 2 * 60 * 1000);
+        world.push(rainviewerClouds);
+    }
 
     let createGeoJsonLayer = function (title, name, url, fill, stroke, showLabel = true) {
         return new ol.layer.Vector({
