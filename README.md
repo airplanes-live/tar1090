@@ -118,12 +118,12 @@ Then F5 to refresh the web interface in the browser.
 
 If your instance is not at /tar1090 you'll need to edit the config.js in the approppriate html folder, see "Multiple instances".
 
-## Enable Share links to ADSB-X
+## Enable Share links to airplanes.live
 ```
 # ENABLE:
-sudo sed -i -e 's?.*shareBaseUrl.*?shareBaseUrl  = "https://globe.adsbexchange.com/";?' /usr/local/share/tar1090/html/config.js
+sudo sed -i -e 's?.*shareBaseUrl.*?shareBaseUrl  = "https://globe.airplanes.live/";?' /usr/local/share/tar1090/html/config.js
 # ENABLE if the above doesn't work (updated from previous version)
-echo 'shareBaseUrl  = "https://globe.adsbexchange.com/";' | sudo tee -a /usr/local/share/tar1090/html/config.js
+echo 'shareBaseUrl  = "https://globe.airplanes.live/";' | sudo tee -a /usr/local/share/tar1090/html/config.js
 # DISABLE:
 sudo sed -i -e 's?.*shareBaseUrl.*?shareBaseUrl = false;?' /usr/local/share/tar1090/html/config.js
 ```
