@@ -2026,43 +2026,37 @@ function webglAddLayer() {
     //console.log(spriteSrc);
     try {
         let glStyle = {
-            symbol: {
-                symbolType: 'image',
-                src: spriteSrc,
-                size: [ 'get', 'size' ],
-                offset: [0, 0],
-                textureCoord: [ 'array',
-                    [ 'get', 'cx' ],
-                    [ 'get', 'cy' ],
-                    [ 'get', 'dx' ],
-                    [ 'get', 'dy' ]
-                ],
-                color: [
+            'icon-src': 'images/sprites.png',
+            'icon-color': [
+                'color',
+                [ 'get', 'r' ],
+                [ 'get', 'g' ],
+                [ 'get', 'b' ],
+                1
+            ],
+            'icon-size': [72, 72],
+            'icon-offset': [
+                'array',
+                ['get', 'sx'],
+                ['get', 'sy']
+            ],
+            'icon-rotation': [ 'get', 'rotation' ],
+            'icon-rotate-with-view': true,
+            'icon-scale': [ 'get', 'scale', 'number']
+        };
+
+        if (heatmap) {
+            glStyle = {
+                'circle-radius': (heatmap.radius * globalScale * 2.5) / 2,
+                'circle-opacity': heatmap.alpha || 1,
+                'circle-fill-color': [
                     'color',
                     [ 'get', 'r' ],
                     [ 'get', 'g' ],
                     [ 'get', 'b' ],
                     1
                 ],
-                rotateWithView: false,
-                rotation: [ 'get', 'rotation' ],
-            },
-        };
-        if (heatmap) {
-            glStyle = {
-                symbol: {
-                    symbolType: "circle",
-                    size: heatmap.radius * globalScale * 2.5,
-                    offset: [0, 0],
-                    opacity: heatmap.alpha || 1,
-                    color: [
-                        'color',
-                        [ 'get', 'r' ],
-                        [ 'get', 'g' ],
-                        [ 'get', 'b' ],
-                        1
-                    ],
-                }
+                'circle-displacement': [0, 0]
             }
         }
 
