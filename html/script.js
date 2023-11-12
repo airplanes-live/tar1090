@@ -2042,7 +2042,7 @@ function webglAddLayer() {
             ],
             'icon-rotation': [ 'get', 'rotation' ],
             'icon-rotate-with-view': true,
-            'icon-scale': [ 'get', 'scale', 'number']
+            'icon-scale': [ 'get', 'size', 'number']
         };
 
         if (heatmap) {
