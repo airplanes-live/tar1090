@@ -47,7 +47,6 @@ let pTracks = false;
 let pTracksInterval = 15;
 let lastTraceGet = 0;
 let traceRate = 0;
-let tfrs = false;
 let initialURL = window.location.href;
 let milRanges = [];
 let guessModeS = window.location.href.match(/devg/) ? true : false;
@@ -214,9 +213,6 @@ if (feed != null) {
     } else {
         console.error('uuid / feed fail!');
     }
-}
-if (usp.has('tfrs')) {
-    tfrs = true;
 }
 
 let uk_advisory = false;
