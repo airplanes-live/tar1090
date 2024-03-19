@@ -8,7 +8,7 @@ renice 10 $$
 
 srcdir=/run/readsb
 repo="https://github.com/airplanes-live/tar1090"
-db_repo="https://github.com/airplanes-live/tar1090-db"
+db_repo="https://github.com/wiedehopf/tar1090-db"
 
 # optional command line options for this install script
 # $1: data source directory
