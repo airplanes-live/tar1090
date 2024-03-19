@@ -1,7 +1,7 @@
 # tar1090
 
 
-![Screenshot1](https://raw.githubusercontent.com/wiedehopf/tar1090/screenshots/screenshot3.png)
+![Screenshot1](https://raw.githubusercontent.com/airplanes-live/tar1090/screenshots/screenshot3.png)
 
 Provides an improved webinterface for use with ADS-B decoders readsb / dump1090-fa
 
@@ -24,7 +24,7 @@ dump1090-mutability installations should work as well, aircraft details will be 
 ## Installation
 
 ```
-sudo bash -c "$(wget -nv -O - https://github.com/wiedehopf/tar1090/raw/master/install.sh)"
+sudo bash -c "$(wget -nv -O - https://raw.githubusercontent.com/airplanes-live/tar1090/master/install.sh)"
 ```
 
 ## View the added webinterface
@@ -42,7 +42,7 @@ Check further down for keyboard shortcuts.
 ## Update (same command as installation)
 
 ```
-sudo bash -c "$(wget -nv -O - https://github.com/wiedehopf/tar1090/raw/master/install.sh)"
+sudo bash -c "$(wget -nv -O - https://raw.githubusercontent.com/airplanes-live/tar1090/master/install.sh)"
 ```
 
 Configuration should be preserved.
@@ -159,14 +159,14 @@ UAT traffic will be displayed as ADS-B, this can't be avoided.
 
 
 ```
-wget -nv -O /tmp/install.sh https://github.com/wiedehopf/tar1090/raw/master/install.sh
+wget -nv -O /tmp/install.sh https://raw.githubusercontent.com/airplanes-live/tar1090/master/install.sh
 sudo bash /tmp/install.sh /run/combine1090
 ```
 
 ## Remove / Uninstall
 
 ```
-sudo bash -c "$(wget -nv -O - https://github.com/wiedehopf/tar1090/raw/master/uninstall.sh)"
+sudo bash -c "$(wget -nv -O - https://raw.githubusercontent.com/airplanes-live/tar1090/master/uninstall.sh)"
 ```
 
 ## Using the filters
