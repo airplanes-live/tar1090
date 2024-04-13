@@ -2460,7 +2460,7 @@ function initMap() {
 
     layers.push(trailLayers);
 
-    iconLayer = new ol.layer.Vector({
+    iconLayer = new ol.layer.VectorImage({
         name: 'iconLayer',
         type: 'overlay',
         title: 'Aircraft positions',
