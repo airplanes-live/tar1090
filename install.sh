@@ -1,5 +1,6 @@
 #!/bin/bash
 # shellcheck shell=bash disable=SC2016
+umask 022
 
 
 set -e
@@ -90,6 +91,12 @@ if (( $( { du -s "$ipath/git-db" 2>/dev/null || echo 0; } | cut -f1) > 150000 ))
     rm -rf "$ipath/git-db"
 fi
 
+function copyNoClobber() {
+    if ! [[ -f "$2" ]]; then
+        cp "$1" "$2"
+    fi
+}
+
 function getGIT() {
     # getGIT $REPO $BRANCH $TARGET (directory)
     if [[ -z "$1" ]] || [[ -z "$2" ]] || [[ -z "$3" ]]; then echo "getGIT wrong usage, check your script or tell the author!" 1>&2; return 1; fi
@@ -157,6 +164,8 @@ elif [[ -f /run/dump1090-mutability/aircraft.json ]]; then
     srcdir=/run/dump1090-mutability
 elif [[ -f /run/skyaware978/aircraft.json ]]; then
     srcdir=/run/skyaware978
+elif [[ -f /run/shm/aircraft.json ]]; then
+    srcdir=/run/shm
 else
     echo --------------
     echo FATAL: could not find aircraft.json in any of the usual places!
@@ -244,7 +253,7 @@ do
     names+="$instance "
 
     # don't overwrite existing configuration
-    useSystemd && cp -n default /etc/default/"$service"
+    useSystemd && copyNoClobber default /etc/default/"$service"
 
     sed -i.orig -e "s?SOURCE_DIR?$srcdir?g" -e "s?SERVICE?${service}?g" \
         -e "s?/INSTANCE??g" -e "s?HTMLPATH?$html_path?g" 95-tar1090-otherport.conf

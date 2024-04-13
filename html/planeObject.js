@@ -1749,9 +1749,9 @@ PlaneObject.prototype.updateMarker = function(moved) {
         this.setMarkerRgb();
         const iconRotation = this.shape.noRotate ? 0 : this.rotation;
         this.glMarker.set('rotation', iconRotation * Math.PI / 180.0 + mapOrientation);
-        this.glMarker.set('size', (this.scale * Math.max(this.shape.w, this.shape.h)) / 72);
-        this.glMarker.set('sx', getSpriteX(this.shape) * 72);
-        this.glMarker.set('sy', getSpriteY(this.shape) * 72);
+        this.glMarker.set('scale', this.scale * Math.max(this.shape.w, this.shape.h) / glIconSize);
+        this.glMarker.set('sx', getSpriteX(this.shape) * glIconSize);
+        this.glMarker.set('sy', getSpriteY(this.shape) * glIconSize);
     }
 
     if (this.marker && (!webgl || enableLabels)) {
@@ -2796,7 +2796,7 @@ PlaneObject.prototype.checkForDB = function(data) {
             this.dbinfoLoaded = true;
         }
     }
-    if (!this.dbinfoLoaded && (!dbServer || replay)) {
+    if (!this.dbinfoLoaded && (!dbServer || replay || pTracks || heatmap)) {
         this.getAircraftData();
         return;
     }
@@ -2832,8 +2832,8 @@ PlaneObject.prototype.setProjection = function(arg) {
     //let trace = new Error().stack.toString();
     //console.log(lat + ' ' + trace);
 
-    // manual wrap around
-    if (webgl && Math.abs(CenterLon - lon) > 180) {
+    // manual wrap around (no longer necessary due to OpenLayers changing their webGL code)
+    if (0 && webgl && Math.abs(CenterLon - lon) > 180) {
         if (CenterLon < 0)
             lon -= 360;
         else
@@ -2933,7 +2933,7 @@ PlaneObject.prototype.setFlight = function(flight) {
                                 } else {
                                     logText += `adding ${route._airport_codes_iata}`;
                                 }
-                                console.log(logText);
+                                //console.log(logText);
                             }
                             if (route.airport_codes != 'unknown') {
                                 if (route.plausible == true) {
