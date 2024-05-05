@@ -69,6 +69,7 @@ let noVanish = false;
 let filterTracks = false; // altitude filter: don't filter planes but rather their tracks by altitude
 let refreshId = 0;
 let lastFetch = 0;
+let actualOutline = {};
 let globeIndexNow = {};
 let globeIndexDist = {};
 let globeIndexSpecialLookup = {};
@@ -135,6 +136,9 @@ let lastRequestBox = '';
 let nextQuerySelected = 0;
 let enableDynamicCachebusting = false;
 let lastRefreshInt = 1000;
+
+
+let baroCorrectQNH = 1013.25;
 
 let limitUpdates = -1;
 
@@ -1109,6 +1113,9 @@ function initPage() {
     jQuery("#expand_sidebar_button").click(expandSidebar);
     jQuery("#shrink_sidebar_button").click(showMap);
 
+    jQuery("#altimeter_form").submit(onAltimeterChange);
+    jQuery("#altimeter_set_standard").click(onAltimeterSetStandard);
+
     // Set up altitude filter button event handlers and validation options
     jQuery("#altitude_filter_form").submit(onFilterByAltitude);
     jQuery("#source_filter_form").submit(updateSourceFilter);
@@ -1246,6 +1253,28 @@ jQuery('#selected_altitude_geom1')
         }
     });
 
+    new Toggle({
+        key: "baroUseQNH",
+        display: "Baro. alt.: correct for QNH",
+        container: "#settingsLeft",
+        init: baroUseQNH,
+        setState: function(state) {
+            baroUseQNH = state;
+            if (baroUseQNH) {
+                jQuery('#selected_altitude1_title').updateText('Corr. baro. alt.');
+                jQuery('#selected_altitude2_title').updateText('Corr. barometric');
+                jQuery('#infoblock_altimeter').removeClass('hidden');
+            } else {
+                jQuery('#selected_altitude1_title').updateText('Baro. altitude');
+                jQuery('#selected_altitude2_title').updateText('Barometric');
+                jQuery('#infoblock_altimeter').addClass('hidden');
+            }
+            if (loadFinished) {
+                remakeTrails();
+                refreshSelected();
+            }
+        }
+    });
 
     if (usp.has('labelsGeom')) {
         toggles['labelsGeom'].toggle(true, 'init');
@@ -1883,7 +1912,7 @@ function setIntervalTimers() {
         fetchPfData();
     }
     if (receiverJson && receiverJson.outlineJson) {
-        timers.drawOutline = window.setInterval(drawOutlineJson, 15000);
+        timers.drawOutline = window.setInterval(drawOutlineJson, actualOutline.refresh);
         drawOutlineJson();
     }
 }
@@ -2406,9 +2435,14 @@ function initMap() {
     });
 
 
-    if (receiverJson && receiverJson.outlineJson) {
-        actualOutlineFeatures = new ol.source.Vector();
-        actualOutlineStyle = new ol.style.Style({
+    actualOutline.enabled = multiOutline || (receiverJson && receiverJson.outlineJson);
+
+    if (actualOutline.enabled) {
+        actualOutline.refresh = 15000;
+        actualOutline.url = multiOutline ? 'data/multiOutline.json' : 'data/outline.json';
+
+        actualOutline.features = new ol.source.Vector();
+        actualOutline.style = new ol.style.Style({
             fill: null,
             stroke: new ol.style.Stroke({
                 color: actual_range_outline_color,
@@ -2416,17 +2450,17 @@ function initMap() {
                 lineDash: actual_range_outline_dash,
             }),
         });
-        actualOutlineLayer = new ol.layer.Vector({
+        actualOutline.layer = new ol.layer.Vector({
             name: 'actualRangeOutline',
             type: 'overlay',
             title: 'actual range outline',
-            source: actualOutlineFeatures,
+            source: actualOutline.features,
             zIndex: 101,
             renderBuffer: renderBuffer,
-            style: actualOutlineStyle,
+            style: actualOutline.style,
             visible: actual_range_show,
         });
-        layers.push(actualOutlineLayer);
+        layers.push(actualOutline.layer);
     }
     if (calcOutlineData) {
         calcOutlineLayer = new ol.layer.Vector({
@@ -3118,8 +3152,8 @@ function refreshSelected() {
     }
 
 
-    jQuery("#selected_altitude1").updateText(format_altitude_long(selected.altitude, selected.vert_rate, DisplayUnits));
-    jQuery("#selected_altitude2").updateText(format_altitude_long(selected.altitude, selected.vert_rate, DisplayUnits));
+    jQuery("#selected_altitude1").updateText(format_altitude_long(adjust_baro_alt(selected.altitude), selected.vert_rate, DisplayUnits));
+    jQuery("#selected_altitude2").updateText(format_altitude_long(adjust_baro_alt(selected.altitude), selected.vert_rate, DisplayUnits));
 
     jQuery('#selected_onground').updateText(format_onground(selected.altitude));
 
@@ -3457,7 +3491,7 @@ function refreshHighlighted() {
 
     jQuery('#highlighted_speed').text(format_speed_long(highlighted.gs, DisplayUnits));
 
-    jQuery("#highlighted_altitude").text(format_altitude_long(highlighted.altitude, highlighted.vert_rate, DisplayUnits));
+    jQuery("#highlighted_altitude").text(format_altitude_long(adjust_baro_alt(highlighted.altitude), highlighted.vert_rate, DisplayUnits));
 
     jQuery('#highlighted_pf_route').text((highlighted.pfRoute ? highlighted.pfRoute : highlighted.icao.toUpperCase()));
 
@@ -6612,40 +6646,40 @@ function drawUpintheair() {
         }
     }
 }
-let actualOutlineLayer;
-let actualOutlineFeatures;
-let actualOutlineStyle;
 
 function drawOutlineJson() {
-    if (!receiverJson || !receiverJson.outlineJson)
-        return;
-    let request = jQuery.ajax({ url: 'data/outline.json',
+    let request = jQuery.ajax({ url: actualOutline.url,
         cache: false,
+        timeout: actualOutline.refresh,
         dataType: 'json' });
     request.done(function(data) {
-        actualOutlineFeatures.clear();
-        let points;
-        if (data.actualRange && data.actualRange.last24h) {
-            points = data.actualRange.last24h.points;
+        actualOutline.features.clear();
+        let points = [];
+        if (data.multiRange) {
+            points = data.multiRange
+        } else if (data.actualRange && data.actualRange.last24h) {
+            points[0] = data.actualRange.last24h.points;
         } else {
-            points = data.points;
+            points[0] = data.points;
         }
-        if (!points || !points.length)
+        if (!points[0] || !points[0].length)
             return;
-        let geom = null;
-        let lastLon = null;
-        for (let j = 0; j < points.length + 1; ++j) {
-            const k = j % points.length;
-            const lat = points[k][0];
-            const lon = points[k][1];
-            const proj = ol.proj.fromLonLat([lon, lat]);
-            if (!geom || (lastLon && Math.abs(lon - lastLon) > 270)) {
-                geom = new ol.geom.LineString([proj]);
-                actualOutlineFeatures.addFeature(new ol.Feature(geom));
-            } else {
-                geom.appendCoordinate(proj);
+        for (let p = 0; p < points.length; ++p) {
+            let geom = null;
+            let lastLon = null;
+            for (let j = 0; j < points[p].length + 1; ++j) {
+                const k = j % points[p].length;
+                const lat = points[p][k][0];
+                const lon = points[p][k][1];
+                const proj = ol.proj.fromLonLat([lon, lat]);
+                if (!geom || (lastLon && Math.abs(lon - lastLon) > 270)) {
+                    geom = new ol.geom.LineString([proj]);
+                    actualOutline.features.addFeature(new ol.Feature(geom));
+                } else {
+                    geom.appendCoordinate(proj);
+                }
+                lastLon = lon;
             }
-            lastLon = lon;
         }
     });
 
@@ -7907,9 +7941,11 @@ function autoSelectClosest() {
     checkMovement();
     for (let key in g.planesOrdered) {
         const plane = g.planesOrdered[key];
+        if (!plane.visible)
+            continue;
         if (!closest)
             closest = plane;
-        if (plane.position == null || !plane.visible)
+        if (plane.position == null)
             continue;
         let refLoc = [CenterLon, CenterLat];
         if (autoselectCoords && autoselectCoords.length == 2) {
@@ -8421,6 +8457,43 @@ Please add a disclaimer to any screenshots of this website or better yet just re
 
 function getn(n) {
     limitUpdates=n; RefreshInterval=0; fetchCalls=0;
+}
+
+function onAltimeterSetStandard(e) {
+    e.preventDefault();
+    jQuery("#altimeter_input").val(1013.25);
+    onAltimeterChange(e);
+}
+function onAltimeterChange(e) {
+    e.preventDefault();
+    jQuery("#altimeter_input").blur();
+    let altimeter = parseFloat(jQuery("#altimeter_input").val().trim());
+
+    if (altimeter < 100) {
+        // assume inHg, convert to mbar
+        baroCorrectQNH = 33.8639 * altimeter;
+    } else {
+        // assume mbar / hPa
+        baroCorrectQNH = altimeter;
+    }
+
+    remakeTrails();
+    refreshSelected();
+}
+
+// Using formula from: https://www.weather.gov/media/epz/wxcalc/pressureAltitude.pdf
+// See also: https://en.wikipedia.org/wiki/Pressure_altitude
+// Inverse equation on wikipedia seems imprecise,
+// used the the weather.gov pdf and inverted the equation myself
+// This uses ISA atmosphere (should be the same as altimeters in planes)
+function adjust_baro_alt(alt) {
+    if (!baroUseQNH || alt == null) {
+        return alt;
+    }
+    let station_pressure = Math.pow(1 - alt / 145366.45, 5.2553026) * 1013.25;
+
+    let res = ( 1 - Math.pow(station_pressure / baroCorrectQNH, 0.190284) ) * 145366.45;
+    return res;
 }
 
 function globeRateUpdate() {

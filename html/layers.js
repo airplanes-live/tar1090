@@ -240,6 +240,64 @@ function createBaseLayers() {
         }));
     }
 
+    if (0) {
+        us.push(new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: "https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}",
+                attributions: 'Tiles courtesy of <a href="http://tiles.arcgis.com/">arcgis.com</a>',
+                attributionsCollapsible: false,
+                minZoom: 8,
+                maxZoom: 12,
+                transition: tileTransition,
+            }),
+            name: 'VFR_Sectional',
+            title: 'VFR Sectional Chart',
+            type: 'base'
+        }));
+
+        us.push(new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: "https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Terminal/MapServer/tile/{z}/{y}/{x}",
+                attributions: 'Tiles courtesy of <a href="http://tiles.arcgis.com/">arcgis.com</a>',
+                attributionsCollapsible: false,
+                minZoom: 10,
+                maxZoom: 12,
+                transition: tileTransition,
+            }),
+            name: 'VFR_Terminal',
+            title: 'VFR Terminal Chart',
+            type: 'base'
+        }));
+
+        us.push(new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: "https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/IFR_AreaLow/MapServer/tile/{z}/{y}/{x}",
+                attributions: 'Tiles courtesy of <a href="http://tiles.arcgis.com/">arcgis.com</a>',
+                attributionsCollapsible: false,
+                minZoom: 8,
+                maxZoom: 11,
+                transition: tileTransition,
+            }),
+            name: 'IFR_AreaLow',
+            title: 'IRF Enroute Chart Low',
+            type: 'base'
+        }));
+
+        us.push(new ol.layer.Tile({
+            source: new ol.source.XYZ({
+                url: "https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/IFR_High/MapServer/tile/{z}/{y}/{x}",
+                attributions: 'Tiles courtesy of <a href="http://tiles.arcgis.com/">arcgis.com</a>',
+                attributionsCollapsible: false,
+                minZoom: 7,
+                maxZoom: 11,
+                transition: tileTransition,
+            }),
+            name: 'IFR_High',
+            title: 'IRF Enroute Chart High',
+            type: 'base'
+        }));
+    }
+
 /*     if (ChartBundleLayers) {
 
         let chartbundleTypes = {
