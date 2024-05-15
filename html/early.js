@@ -32,7 +32,7 @@ let globeIndexGrid = 0;
 let globeIndexSpecialTiles;
 let binCraft = false;
 let reApi = false;
-let zstd = true; // init hasn't failed
+let zstd = true; // default to on
 let dbServer = false;
 let l3harris = false;
 let heatmap = false;
@@ -347,6 +347,15 @@ function lDateString(date) {
     return string;
 }
 
+function chunksDefer() {
+    return jQuery.ajax({
+        url:'chunks/chunks.json',
+        cache: false,
+        dataType: 'json',
+        timeout: 4000,
+    });
+}
+
 let get_receiver_defer;
 let test_chunk_defer;
 const hostname = window.location.hostname;
@@ -366,12 +375,7 @@ if (uuid) {
         dataType: 'json',
         timeout: 10000,
     });}
-    {test_chunk_defer = jQuery.ajax({
-        url:'chunks/chunks.json',
-        cache: false,
-        dataType: 'json',
-        timeout: 4000,
-    });}
+    {test_chunk_defer = chunksDefer();}
 }
 
 {jQuery.getJSON(databaseFolder + "/ranges.js").done(function(ranges) {
@@ -441,8 +445,6 @@ if (!heatmap) {
     loadHeatChunk();
 }
 
-init_zstddec();
-
 function historyQueued() {
     if (!globeIndex && !uuid) {
         let request = jQuery.ajax({ url: 'upintheair.json',
@@ -485,7 +487,8 @@ if (uuid != null) {
         RefreshInterval = data.refresh;
         nHistoryItems = (data.history < 2) ? 0 : data.history;
         binCraft = data.binCraft ? true : false || data.aircraft_binCraft ? true : false;
-        zstd = zstd && data.zstd; // check if it already failed, leave it off then
+        zstd = data.zstd;
+        init_zstddec();
         reApi = data.reapi ? true : false;
         if (usp.has('noglobe') || usp.has('ptracks')) {
             data.globeIndexGrid = null; // disable globe on user request
@@ -580,7 +583,8 @@ function get_history_item(i) {
     let request;
 
     if (HistoryChunks) {
-        request = jQuery.ajax({ url: 'chunks/' + chunkNames[i],
+        let filename = chunkNames[i];
+        request = jQuery.ajax({ url: 'chunks/' + filename,
             timeout: historyTimeout * 1000,
             dataType: 'json'
         });
@@ -775,6 +779,9 @@ function webAssemblyFail(e) {
 }
 
 function init_zstddec() {
+    if (!zstd) {
+        return;
+    }
     try {
         zstddec.decoder = new zstddec.ZSTDDecoder();
         zstddec.promise = zstddec.decoder.init();

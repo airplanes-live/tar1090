@@ -1746,6 +1746,7 @@ function initFlagFilter(colors) {
 }
 
 function push_history() {
+    HistoryItemsReturned = 0;
     jQuery("#loader_progress").attr('max',nHistoryItems*2);
 
     for (let i = 0; i < nHistoryItems; i++) {
@@ -1754,7 +1755,6 @@ function push_history() {
 }
 
 function push_history_item(i) {
-
     jQuery.when(deferHistory[i])
         .done(function(json) {
 
@@ -1796,6 +1796,7 @@ function parseHistory() {
 
     for (let i in deferHistory)
         deferHistory[i] = null;
+    deferHistory = [];
 
 
     if (PositionHistoryBuffer.length > 0) {
@@ -1815,6 +1816,10 @@ function parseHistory() {
                 continue;
             }
 
+            if (g.refreshHistory && now > data.now) {
+                continue;
+            }
+
             // process new data
             if (PositionHistoryBuffer.length < 10) {
                 processReceiverUpdate(data, false);
@@ -1822,16 +1827,16 @@ function parseHistory() {
                 processReceiverUpdate(data, true);
             }
 
-            if (h==1) {
+            if (h==0) {
                 console.log("Applied history " + h + " from: "
-                    + (new Date(now * 1000)).toLocaleTimeString());
+                    + localTime(new Date(now * 1000)));
             }
 
             // prune aircraft list
             if (h++ % pruneInt == pruneInt - 1) {
 
                 console.log("Applied history " + h + " from: "
-                    + (new Date(now * 1000)).toLocaleTimeString());
+                    + localTime(new Date(now * 1000)));
 
                 reaper();
             }
@@ -1854,14 +1859,22 @@ function parseHistory() {
         TAR.planeMan.refresh();
     }
 
-    PositionHistoryBuffer = null;
+    PositionHistoryBuffer = [];
 
     console.timeEnd("Loaded aircraft tracks from History");
+
+    if (g.refreshHistory) {
+        g.refreshHistory = false;
+        noLongerHidden();
+        return;
+    }
 
     historyLoaded.resolve();
 }
 
 let replay_was_active = false;
+
+
 let timers = {};
 let timersActive = false;
 function clearIntervalTimers(arg) {
@@ -1914,6 +1927,23 @@ function setIntervalTimers() {
     if (receiverJson && receiverJson.outlineJson) {
         timers.drawOutline = window.setInterval(drawOutlineJson, actualOutline.refresh);
         drawOutlineJson();
+    }
+
+    if (aiscatcher_server) {
+        function updateAIScatcher() {
+            let req = jQuery.ajax({
+                url: aiscatcher_server + '/geojson',
+                dataType: 'text',
+            });
+
+            req.done(function(data) {
+                //console.log(data);
+                g.aiscatcher_source.setUrl("data:text/plain;base64,"+btoa(data));
+                g.aiscatcher_source.refresh();
+            });
+        }
+        timers.aiscatcher = setInterval(updateAIScatcher, aiscatcher_refresh * 1000);
+        updateAIScatcher();
     }
 }
 
@@ -2364,9 +2394,7 @@ function ol_map_init() {
     });
 
     // show the hover box
-    if (!globeIndex && zoomLvl > 5.5 && enableMouseover) {
-        OLMap.on('pointermove', onPointermove);
-    }
+    checkPointermove();
 }
 
 // Initalizes the map and starts up our timers to call various functions
@@ -5488,17 +5516,32 @@ function onPointermove(evt) {
 }
 
 function highlight(evt) {
-    const hex = evt.map.forEachFeatureAtPixel(evt.pixel,
+    const feature = evt.map.forEachFeatureAtPixel(evt.pixel,
         function(feature, layer) {
-            return feature.hex;
+            return feature;
         },
         {
             layerFilter: function(layer) {
-                return (layer == iconLayer || layer == webglLayer);
+                return (layer == iconLayer || layer == webglLayer || layer == g.aiscatcherLayer);
             },
             hitTolerance: 5 * globalScale,
         }
     );
+    if (!feature) {
+        HighlightedPlane = null;
+        refreshHighlighted();
+        return;
+    }
+    const hex = feature.hex;
+
+    const values = feature.values_;
+    const mmsi = values ? values.mmsi : null;
+    if (hex) {
+        //console.log(hex);
+    }
+    if (mmsi) {
+        //console.log(mmsi);
+    }
 
     if (HighlightedPlane && hex == HighlightedPlane.icao)
         return;
@@ -7821,7 +7864,7 @@ function showReplayBar(){
 };
 
 function timeoutFetch() {
-    console.log('timeoutFetch');
+    console.log("timeoutFetch " + localTime(new Date()));
     fetchData();
     if (timers.timeoutFetch) {
         clearTimeout(timers.checkMove);
@@ -7832,6 +7875,51 @@ function timeoutFetch() {
     }
 }
 
+function refreshHistory() {
+    if ((new Date().getTime() - g.hideStamp) / 1000 < 2) {
+        console.log('short tab change, not loading history');
+        noLongerHidden();
+        return;
+    }
+    if (heatmap || replay || globeIndex || pTracks) {
+        noLongerHidden();
+        return;
+    }
+    chunksDefer().done(function(data) {
+        console.log('tab change, loading history');
+        g.refreshHistory = true;
+        HistoryChunks = true;
+        chunkNames = [];
+        try {
+            for (let i = data.chunks.length-1; i >= 0; i--) {
+                let f = data.chunks[i];
+                chunkNames.push(f);
+
+                // break after we found a chunk that's older than now
+                // chunk timestamp is the start of its data, not the end
+                // so we need to include the first chunk that's older
+                // which is done above
+
+                let parts = f.split(".")[0].split("_");
+                if (parts[0] == "chunk") {
+                    if (now > parts[1]/1e3) {
+                        break;
+                    }
+                }
+            }
+            nHistoryItems = chunkNames.length;
+            get_history();
+            push_history();
+        } catch (e) {
+            console.error(e);
+            noLongerHidden();
+        }
+    }).fail(function() {
+        noLongerHidden();
+    });
+}
+
+
 function handleVisibilityChange() {
     const prevHidden = tabHidden;
     if (document[hideName])
@@ -7840,9 +7928,10 @@ function handleVisibilityChange() {
         tabHidden = false;
 
     if (tabHidden && !prevHidden) {
+        g.hideStamp = new Date().getTime();
         clearIntervalTimers();
         if (!globeIndex) {
-            timeoutFetch();
+            //timeoutFetch();
         }
 
         replay_was_active = replay.playing;
@@ -7856,8 +7945,7 @@ function handleVisibilityChange() {
         if (loadFinished) {
             jQuery("#timers_paused").css('display','none');
         }
-        globeRateUpdate().done(noLongerHidden);
-
+        globeRateUpdate().done(refreshHistory);
     }
 }
 
@@ -8487,7 +8575,7 @@ function onAltimeterChange(e) {
 // used the the weather.gov pdf and inverted the equation myself
 // This uses ISA atmosphere (should be the same as altimeters in planes)
 function adjust_baro_alt(alt) {
-    if (!baroUseQNH || alt == null) {
+    if (!baroUseQNH || alt == null || alt == "ground") {
         return alt;
     }
     let station_pressure = Math.pow(1 - alt / 145366.45, 5.2553026) * 1013.25;
