@@ -45,7 +45,6 @@ let SelectedAllPlanes = false;
 let HighlightedPlane = null;
 let FollowSelected = false;
 let followPos = [];
-let loadFinished = false;
 let loadStart = new Date().getTime();
 let mapResizeTimeout;
 let pointerMoveTimeout;
@@ -289,7 +288,7 @@ function processReceiverUpdate(data, init) {
         if (data.now <= now && !globeIndex) {
             if (data.now < now) {
                 backwardsCounter++;
-                console.log('timestep backwards or the same, ignoring data:' + now + ' -> ' + data.now);
+                console.log('timestep backwards or the same, ignoring data: ' + now + ' -> ' + data.now);
                 if (backwardsCounter >= 5) {
                     backwardsCounter = 0;
                     console.log('resetting all data now:' + now + ' -> ' + data.now);
@@ -306,6 +305,9 @@ function processReceiverUpdate(data, init) {
             return;
         }
         if (data.now > now) {
+            if (0 && now && data.now - now > 10) {
+                console.log('now jumped: ' + localTime(new Date(now * 1000)) + ' -> ' + localTime(new Date(data.now * 1000)));
+            }
             notNewCounter = 0;
             backwardsCounter = 0;
             last = now;
@@ -397,6 +399,11 @@ function fetchDone(data) {
             return;
         }
 
+        if (!timersActive) {
+            //console.log(localTime(new Date()) + " fetchDone: not applying data due to !timersActive");
+            return;
+        }
+
         //console.time("Process " + data.globeIndex);
         processReceiverUpdate(data);
         //console.timeEnd("Process " + data.globeIndex);
@@ -462,9 +469,10 @@ function db_load_type_cache() {
     });
 }
 
+g.afterLoadDone = false;
 g.afterLoad = [];
 function runAfterLoad(func) {
-    if (g.firstFetchDone) {
+    if (g.afterLoadDone) {
         func()
     } else {
         g.afterLoad.push(func);
@@ -477,30 +485,23 @@ function afterFirstFetch() {
     g.firstFetchDone = true;
 
     setTimeout(() => {
-        console.time('afterFirstFetch');
+        console.time('afterFirstFetch()');
 
         let func;
         while ((func = g.afterLoad.pop())) {
             func();
         }
+        g.afterLoadDone = false;
 
         geoMag = geoMagFactory(cof2Obj());
 
         db_load_type_cache(); // this will do a refresh()
 
-        if (limitUpdates != 0) {
-            (typeof load_gt != 'undefined') && (load_gt) && (load_gt()) && (load_gt = null);
-            (typeof load_fi != 'undefined') && (load_fi) && (load_fi()) && (load_fi = null);
-            (typeof load_freestar != 'undefined') && (load_freestar) && (load_freestar()) && (load_freestar = null);
-        } else {
-            (typeof hide_freestar != 'undefined') && (hide_freestar) && (hide_freestar());
-        }
-
         if (usp.has('screenshot')) {
             clearIntervalTimers('silent');
         }
 
-        console.timeEnd('afterFirstFetch');
+        console.timeEnd('afterFirstFetch()');
     }, 150);
 }
 
@@ -509,6 +510,10 @@ let C429 = 0;
 let fetchCalls = 0;
 function fetchData(options) {
     options = options || {};
+    if (!timersActive) {
+        //console.log(localTime(new Date()) + " fetchData inhibited by !timersActive");
+        return;
+    }
     if (heatmap || replay || showTrace || pTracks || !loadFinished || inhibitFetch) {
         return;
     }
@@ -677,6 +682,8 @@ function initialize() {
         return;
     }
 
+    jQuery.when(historyQueued).done(push_history);
+
     jQuery.when(configureReceiver, heatmapDefer).done(function() {
 
         if (receiverJson) {
@@ -710,8 +717,6 @@ function initialize() {
         processQueryToggles();
 
         if (nHistoryItems) {
-            // Wait for history item downloads and append them to the buffer
-            push_history();
             jQuery.when(historyLoaded).done(afterHistoryLoad);
         } else {
             afterHistoryLoad();
@@ -719,9 +724,9 @@ function initialize() {
     });
 }
 function afterHistoryLoad() {
-    if (nHistoryItems) {
-        reaper();
-    }
+    if (!heatmap)
+        jQuery("#loader").hide();
+
     if (!zstdDecode) {
         startPage();
     } else {
@@ -1747,7 +1752,8 @@ function initFlagFilter(colors) {
 
 function push_history() {
     HistoryItemsReturned = 0;
-    jQuery("#loader_progress").attr('max',nHistoryItems*2);
+    PositionHistoryBuffer = [];
+    jQuery("#loader_progress").attr('max',nHistoryItems + 1);
 
     for (let i = 0; i < nHistoryItems; i++) {
         push_history_item(i);
@@ -1771,10 +1777,13 @@ function push_history_item(i) {
             }
 
 
-            jQuery("#loader_progress").attr('value',HistoryItemsReturned);
             HistoryItemsReturned++;
+            jQuery("#loader_progress").attr('value',HistoryItemsReturned);
             if (HistoryItemsReturned == nHistoryItems) {
                 parseHistory();
+            }
+            if (HistoryItemsReturned > nHistoryItems) {
+                console.log(localTime(new Date()) + " WARNING: (HistoryItemsReturned > nHistoryItems)");
             }
         })
 
@@ -1796,21 +1805,28 @@ function parseHistory() {
 
     for (let i in deferHistory)
         deferHistory[i] = null;
-    deferHistory = [];
+    deferHistory = null;
 
 
     if (PositionHistoryBuffer.length > 0) {
 
         // Sort history by timestamp
-        console.log("Sorting history: " + PositionHistoryBuffer.length);
+        console.log(localTime(new Date()) + " Sorting history: " + PositionHistoryBuffer.length);
         PositionHistoryBuffer.sort(function(x,y) { return (y.now - x.now); });
 
         // Process history
         let data;
         let h = 0;
-        let pruneInt = Math.floor(PositionHistoryBuffer.length/5);
+        let pruneInt = 100;
         let currentTime = new Date().getTime()/1000;
+        let lastTimestamp = 0;
+
         while (data = PositionHistoryBuffer.pop()) {
+
+            if (data.now < lastTimestamp) {
+                console.log('parseHistory sorting issue');
+            }
+            lastTimestamp = data.now;
 
             if (pTracks && currentTime - data.now > pTracks * 3600) {
                 continue;
@@ -1827,23 +1843,21 @@ function parseHistory() {
                 processReceiverUpdate(data, true);
             }
 
-            if (h==0) {
-                console.log("Applied history " + h + " from: "
-                    + localTime(new Date(now * 1000)));
-            }
+            ++h
+            if (h == 1 || h % pruneInt == 0 || PositionHistoryBuffer.length == 0) {
 
-            // prune aircraft list
-            if (h++ % pruneInt == pruneInt - 1) {
-
-                console.log("Applied history " + h + " from: "
+                console.log("Apply History " + String(h).padStart(4) + " from: "
                     + localTime(new Date(now * 1000)));
 
-                reaper();
+                if (h != 1) {
+                    // prune aircraft list
+                    reaper();
+                }
             }
         }
 
         // Final pass to update all planes to their latest state
-        console.log("Final history cleanup pass");
+        //console.log("Final history cleanup pass");
         for (let i in g.planesOrdered) {
             let plane = g.planesOrdered[i];
 
@@ -1858,8 +1872,6 @@ function parseHistory() {
         refreshFeatures();
         TAR.planeMan.refresh();
     }
-
-    PositionHistoryBuffer = [];
 
     console.timeEnd("Loaded aircraft tracks from History");
 
@@ -1878,19 +1890,25 @@ let replay_was_active = false;
 let timers = {};
 let timersActive = false;
 function clearIntervalTimers(arg) {
-    timersActive = false;
+    if (!timersActive) {
+        console.trace();
+        return;
+    }
 
     if (loadFinished && arg != 'silent') {
+        console.log(localTime(new Date()) + ' clear timers');
         jQuery("#timers_paused_detail").text('Timers paused (tab hidden).');
         jQuery("#timers_paused").css('display','block');
-
     }
-    console.log("clear timers " + localTime(new Date()));
     const entries = Object.entries(timers);
     for (let i in entries) {
         clearInterval(entries[i][1]);
     }
 
+    timersActive = false;
+
+    // in case the visibility changed while this was running
+    handleVisibilityChange();
 }
 
 function setIntervalTimers() {
@@ -1898,12 +1916,10 @@ function setIntervalTimers() {
         return;
     }
 
-    timersActive = true;
-
     if (loadFinished) {
         jQuery("#timers_paused").css('display','none');
     }
-    console.log("set timers " + localTime(new Date()));
+    console.log(localTime(new Date()) + " set timers ");
     if ((airplaneslive || dynGlobeRate) && !uuid) {
         timers.globeRateUpdate = setInterval(globeRateUpdate, 180000);
     }
@@ -1945,6 +1961,11 @@ function setIntervalTimers() {
         timers.aiscatcher = setInterval(updateAIScatcher, aiscatcher_refresh * 1000);
         updateAIScatcher();
     }
+
+    timersActive = true;
+    fetchData();
+    // in case the visibility changed while this was running
+    handleVisibilityChange();
 }
 
 let djson;
@@ -1952,8 +1973,6 @@ let dstring;
 let dresult;
 
 function startPage() {
-
-    console.log("Completing init");
 
     if (!globeIndex) {
         jQuery("#lastLeg_cb").parent().hide();
@@ -1998,17 +2017,10 @@ function startPage() {
 
     loadFinished = true;
 
-    // Kick off first refresh.
-    fetchData();
-
-    clearIntervalTimers();
     setIntervalTimers();
 
     if (tempTrails)
         selectAllPlanes();
-
-    if (!heatmap)
-        jQuery("#loader").hide();
 
     if (replay) {
         showReplayBar();
@@ -2025,13 +2037,14 @@ function startPage() {
         setTimeout(TAR.planeMan.refresh, 10000);
 
     window.addEventListener("beforeunload", function (event) {
-        //jQuery("#map_canvas").hide();
-        clearIntervalTimers('silent');
+        clearIntervalTimers();
     });
 
     if (heatmap || replay || showTrace || pTracks || inhibitFetch) {
         afterFirstFetch();
     }
+
+    console.timeEnd("Page Load");
 }
 
 //
@@ -3652,7 +3665,7 @@ function refreshFeatures() {
     cols.altitude = {
         text: 'Altitude',
         sort: function () { sortBy('altitude',compareNumeric, function(x) { return (x.altitude == "ground" ? -100000 : x.altitude); }); },
-        value: function(plane) { return format_altitude_brief(plane.altitude, plane.vert_rate, DisplayUnits); },
+        value: function(plane) { return format_altitude_brief(adjust_baro_alt(plane.altitude), plane.vert_rate, DisplayUnits); },
         align: 'right',
         header: function () { return 'Alt.' + NBSP + '(' + get_unit_label("altitude", DisplayUnits) + ')';},
     };
@@ -7218,7 +7231,7 @@ function drawHeatmap() {
         }
     }
     console.timeEnd("drawHeat");
-    jQuery("#loader").addClass("hidden");
+    jQuery("#loader").hide();
 }
 
 function currentExtent(factor) {
@@ -7876,7 +7889,7 @@ function timeoutFetch() {
 }
 
 function refreshHistory() {
-    if ((new Date().getTime() - g.hideStamp) / 1000 < 2) {
+    if (0 && (new Date().getTime() - g.hideStamp) / 1000 < 2) {
         console.log('short tab change, not loading history');
         noLongerHidden();
         return;
@@ -7885,11 +7898,16 @@ function refreshHistory() {
         noLongerHidden();
         return;
     }
+
+    jQuery("#loader_progress").attr('value', 0);
+    jQuery("#loader").show();
+
     chunksDefer().done(function(data) {
-        console.log('tab change, loading history');
+        console.log(localTime(new Date()) + ' tab change, loading history');
         g.refreshHistory = true;
         HistoryChunks = true;
         chunkNames = [];
+        jQuery("#loader_progress").attr('value', 1);
         try {
             for (let i = data.chunks.length-1; i >= 0; i--) {
                 let f = data.chunks[i];
@@ -7907,6 +7925,7 @@ function refreshHistory() {
                     }
                 }
             }
+            //console.log(chunkNames);
             nHistoryItems = chunkNames.length;
             get_history();
             push_history();
@@ -7927,7 +7946,7 @@ function handleVisibilityChange() {
     else
         tabHidden = false;
 
-    if (tabHidden && !prevHidden) {
+    if (tabHidden && timersActive) {
         g.hideStamp = new Date().getTime();
         clearIntervalTimers();
         if (!globeIndex) {
@@ -7941,7 +7960,7 @@ function handleVisibilityChange() {
     }
 
     // tab is no longer hidden
-    if (!tabHidden && prevHidden) {
+    if (!tabHidden && !timersActive) {
         if (loadFinished) {
             jQuery("#timers_paused").css('display','none');
         }
@@ -7950,14 +7969,13 @@ function handleVisibilityChange() {
 }
 
 function noLongerHidden() {
-
-    clearIntervalTimers();
-    setIntervalTimers();
+    jQuery("#loader").hide();
 
     active();
 
+    setIntervalTimers();
+
     refresh();
-    fetchData();
 
     if (replay_was_active) {
         playReplay(true);
@@ -8567,6 +8585,9 @@ function onAltimeterChange(e) {
 
     remakeTrails();
     refreshSelected();
+    refreshFeatures();
+    TAR.planeMan.redraw();
+    refresh();
 }
 
 // Using formula from: https://www.weather.gov/media/epz/wxcalc/pressureAltitude.pdf
