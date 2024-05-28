@@ -302,6 +302,9 @@ HideCols = [
 	"#lat",
 	"#lon",
 	"#data_source",
+	"#military",
+    "#wd",
+    "#ws",
 ]
 */ // remove this line to modify columns (and the one at the start)
 

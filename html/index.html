@@ -44,6 +44,10 @@
             <div class="infoHeading"><span>Type code: </span></div>
             <div class="infoData"><span id="highlighted_icaotype">n/a</span></div>
           </div>
+          <div>
+              <div id="routeRowHighlight" class="infoHeading"><span title="Reported flight origin and destination according to adsbdb.com">Route</span>:</div>
+              <div class="infoData"><span id="highlighted_route"></span></div>
+          </div>
           <div class="rSpacer">
           </div>
           <div>
@@ -726,12 +730,13 @@
         </div>
       </div> <!-- selected_infoblock -->
 
+      <div id="loader">
+          <progress id="loader_progress"></progress>
+      </div>
+
       <div id="map_container" style="background-color:#D2D2D2;">
         <!-- MAP_CONTAINER_ANCHOR -->
         <div id="map_canvas" style="background-color:#D2D2D2;">
-          <div id="loader">
-            <progress id="loader_progress"></progress>
-          </div>
         </div>
         <div id="iconTestCanvas" style="background-color:#D2D2D2;display:none;">
         </div>
@@ -796,7 +801,8 @@
             <div id="expand_sidebar_control">
               <button id="expand_sidebar_button" class="sidebar_button" title="Expand Sidebar" style="display: none;"></button>
             </div>
-            <div id="settingsCog" class="settingsCog"></div>
+            <div id="fullscreenButton" class="svgButton fullscreenButton"></div>
+            <div id="settingsCog" class="svgButton settingsCog"></div>
             <div id="L" title="Toggle (L)abels" class="button inActiveButton" onclick="toggleLabels();"><span class="buttonText">L</span></div>
             <div id="O" title="Toggle Label Extensi(O)ns" class="button inActiveButton" onclick="toggleExtendedLabels();"><span class="buttonText">O</span></div>
             <div id="K" title="Toggle Trac(K) Labels" class="button inActiveButton" onclick="toggleTrackLabels();"><span class="buttonText">K</span></div>
@@ -837,7 +843,7 @@
 
       </div> <!-- map_container-->
 
-      <div id="sidebar_container" style="display: none">
+      <div id="sidebar_container" style="display: none; height: 100%;">
         <div id="splitter" class="ui-resizable-handle ui-resizable-w" style="display: none;"></div>
         <div id="sidebar_canvas">
 
@@ -883,7 +889,7 @@
 
               <tr class="infoblock_heading">
                 <td style="text-align: right" class=link>
-                  <a href="https://github.com/airplanes-live/tar1090" id="dump1090_version" target="_blank">tar1090 on github</a>
+                  <a href="https://github.com/airplanes-live/tar1090" id="tar1090_version" target="_blank">tar1090 on github</a>
                 </td>
               </tr>
               <tr class="rSpacer">

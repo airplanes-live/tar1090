@@ -10,7 +10,7 @@ function PlaneObject(icao) {
     this.icao      = icao;
     const icaorange = findICAORange(icao);
     this.country = icaorange.country;
-    this.flag_image = icaorange.flag_image;
+    this.country_code = icaorange.country_code;
 
     this.numHex = parseInt(icao.replace('~', '1'), 16);
     this.fakeHex = this.numHex > 16777215; // non-icao hex
@@ -486,7 +486,7 @@ PlaneObject.prototype.updateTrack = function(now, last, serverTrack, stale) {
     // Time difference between two position updates should not be much
     // greater than the difference between data inputs
     let time_difference = (this.position_time - this.prev_time) - 2;
-    if (!loadFinished || serverTrack)
+    if (g.refreshHistory || !loadFinished || serverTrack)
         time_difference = (this.position_time - this.prev_time) - Math.min(60, now - last);
 
     //let stale_timeout = lastseg.estimated ? 5 : 10;
@@ -1332,7 +1332,7 @@ PlaneObject.prototype.updatePositionData = function(now, last, data, init) {
     if (this.position && SitePosition) {
         if (pTracks && this.sitedist) {
             this.sitedist = Math.max(ol.sphere.getDistance(SitePosition, this.position), this.sitedist);
-        } else {
+        } else if (!init) {
             this.sitedist = ol.sphere.getDistance(SitePosition, this.position);
         }
     }

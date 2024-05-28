@@ -21,12 +21,14 @@ let enable_uat = false;
 let enable_pf_data = false;
 let HistoryChunks = false;
 let nHistoryItems = 0;
+let HistoryItemsLoaded;
 let HistoryItemsReturned = 0;
 let chunkNames = [];
 let PositionHistoryBuffer;
 var receiverJson;
 let deferHistory;
 let historyLoaded = jQuery.Deferred();
+let zstdDefer = jQuery.Deferred();
 let configureReceiver = jQuery.Deferred();
 let historyQueued = jQuery.Deferred();
 let historyTimeout = 60;
@@ -359,6 +361,40 @@ function chunksDefer() {
     });
 }
 
+function handleJsonWorker(e) {
+    const url = e.data.url;
+    //console.log("url finished: " + url);
+    const defer = g.jwr[url];
+    delete g.jwr[url];
+
+    defer.resolve(e.data.json);
+};
+
+function jsonGetWorker(url) {
+    const defer = jQuery.Deferred();
+    g.jwr[url] = defer;
+    const wid = g.jsonGetId++ % g.jsonWorker.length;
+    //console.log(`using worker ${wid}`);
+    g.jsonWorker[wid].postMessage(url);
+
+    return defer;
+}
+
+g.jWorkers = 0;
+if (g.jWorkers) {
+    g.jwr = {};
+
+    g.jsonWorker = [];
+    g.jsonGetId = 0;
+
+    for (let i = 0; i < g.jWorkers; i++) {
+        const worker = new Worker("jsonWorker.js");
+        g.jsonWorker.push(worker);
+        worker.onmessage = handleJsonWorker;
+    }
+
+}
+
 let get_receiver_defer;
 let test_chunk_defer;
 const hostname = window.location.hostname;
@@ -455,6 +491,7 @@ if (uuid != null) {
     configureReceiver.resolve();
     //console.time("Downloaded History");
     zstd = false;
+    init_zstddec();
 } else {
     get_receiver_defer.fail(function(data){
 
@@ -475,7 +512,6 @@ if (uuid != null) {
         nHistoryItems = (data.history < 2) ? 0 : data.history;
         binCraft = data.binCraft ? true : false || data.aircraft_binCraft ? true : false;
         zstd = data.zstd;
-        init_zstddec();
         reApi = data.reapi ? true : false;
         if (usp.has('noglobe') || usp.has('ptracks')) {
             data.globeIndexGrid = null; // disable globe on user request
@@ -521,6 +557,8 @@ if (uuid != null) {
                 get_history();
             });
         }
+
+        init_zstddec();
     });
 }
 
@@ -542,8 +580,10 @@ function get_history() {
     }
 
     deferHistory = [];
+    HistoryItemsLoaded = 0;
 
     if (nHistoryItems > 0) {
+        jQuery("#loader_progress").attr('max',nHistoryItems + 1);
         console.time("Downloaded History");
 
         nHistoryItems++;
@@ -578,15 +618,19 @@ function get_history() {
 }
 
 function get_history_item(i) {
-
     let request;
 
     if (HistoryChunks) {
-        let filename = chunkNames[i];
-        request = jQuery.ajax({ url: 'chunks/' + filename,
-            timeout: historyTimeout * 1000,
-            dataType: 'json'
-        });
+        const url = 'chunks/' + chunkNames[i];
+
+        if (g.jWorkers) {
+            request = jsonGetWorker(url);
+        } else {
+            request = jQuery.ajax({ url: url,
+                timeout: historyTimeout * 1000,
+                dataType: 'json'
+            });
+        }
     } else {
 
         request = jQuery.ajax({ url: 'data/history_' + i + '.json',
@@ -594,6 +638,15 @@ function get_history_item(i) {
             cache: false,
             dataType: 'json' });
     }
+
+    request
+        .done(function(json) {
+            jQuery("#loader_progress").attr('value',++HistoryItemsLoaded);
+        })
+        .fail(function(jqxhr, status, error) {
+            jQuery("#loader_progress").attr('value',++HistoryItemsLoaded);
+        });
+
     deferHistory.push(request);
 }
 
@@ -779,6 +832,7 @@ function webAssemblyFail(e) {
 
 function init_zstddec() {
     if (!zstd) {
+        zstdDefer.resolve();
         return;
     }
     try {
@@ -787,6 +841,21 @@ function init_zstddec() {
         zstdDecode = zstddec.decoder.decode;
     } catch (e) {
         webAssemblyFail(e);
+        zstdDefer.resolve();
+        return;
+    }
+
+    if (!zstdDecode) {
+        zstdDefer.resolve();
+    } else {
+        try {
+            zstddec.promise.then(function() {
+                zstdDefer.resolve();
+            });
+        } catch (e) {
+            webAssemblyFail(e);
+            zstdDefer.resolve();
+        }
     }
 }
 

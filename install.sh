@@ -144,9 +144,9 @@ if [[ "$1" == "test" ]] || [[ -n "$git_source" ]]; then
         cp -r ./* "$gpath/git"
     fi
     cd "$gpath/git"
-    TAR_VERSION="$(date +%s)_${RANDOM}${RANDOM}"
+    TAR_VERSION="$(cat version)_dirty"
 else
-    VERSION_NEW=$(curl --silent --show-error "https://raw.githubusercontent.com/wiedehopf/tar1090/master/version")
+    VERSION_NEW=$(curl --silent --show-error "https://raw.githubusercontent.com/airplanes-live/tar1090/master/version")
     if  [[ "$(cat "$gpath/git/version" 2>/dev/null)" != "$VERSION_NEW" ]]; then
         if ! getGIT "$repo" "master" "$gpath/git"; then
             echo "Unable to download files, exiting! (Maybe try again?)"
@@ -157,7 +157,7 @@ else
         echo "Unable to download files, exiting! (Maybe try again?)"
         exit 1
     fi
-    TAR_VERSION="$(revision)"
+    TAR_VERSION="$(cat version)"
 fi
 
 
@@ -327,7 +327,7 @@ do
     dir=$(pwd)
     cd "$TMP"
 
-    sed -i -e "s/tar1090 on github/tar1090 on github ($(date +%y%m%d))/" index.html
+    sed -i -e "s/tar1090 on github/tar1090 on github (${TAR_VERSION})/" index.html
 
     "$gpath/git/cachebust.sh" "$gpath/git/cachebust.list" "$TMP"
 
