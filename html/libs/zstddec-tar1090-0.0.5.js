@@ -3,7 +3,7 @@
 
 
 // Derived from https://github.com/donmccurdy/zstddec with modifications for compatibility by wiedehopf (matthias.wirth@gmail.com)
-// See https://github.com/wiedehopf/zstddec-tar1090 for more info
+// See https://github.com/airplanes-live/zstddec-tar1090 for more info
 // For browser compatibility, will return UINT32_MAX / 0xffffffff on error in findDecompressedSize, decompressed filesize limited to 4 GB
 
 "use strict";

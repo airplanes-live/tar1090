@@ -1727,7 +1727,7 @@ jQuery('#selected_altitude_geom1')
 
         // activate to prevent iframe use
         if (inhibitIframe && window.self != window.top) {
-            window.top.location.href = "https://www.aggregator.com/";
+            window.top.location.href = "https://airplanes.live/";
             return;
         }
     }
@@ -9003,7 +9003,7 @@ function globeRateUpdate() {
             const cookieExp = getCookie('asdf_id').split('_')[0];
             const ts = new Date().getTime();
             if (!cookieExp || cookieExp < ts + 3600*1000)
-                setCookie('adsbx_sid', ((ts + 2*86400*1000) + '_' + Math.random().toString(36).substring(2, 15)), 2);
+                setCookie('airplanes_live_sid', ((ts + 2*86400*1000) + '_' + Math.random().toString(36).substring(2, 15)), 2);
         }
     }
     if (dynGlobeRate) {
