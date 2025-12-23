@@ -23,7 +23,7 @@
 - filterIcao=^a - filter icao that start with a (escape with %5Ea).
 - filterSources=adsb,uat,adsr,mlat,tisb,modeS - filter planes by source type.
 - filterDbFlag=military,pia,ladd - filter planes by the db flags.
-- sortBy=column - (possible values: icao, flag, flight, registration, aircraft_type, squawk, altitude, speed, vert_rate, distance, track, msgs, seen, rssi, lat, lon, data_source, military, ws, wd
+- sortBy=column - (possible values: icao, flag, flight, registration, aircraft_type, squawk, altitude, speed, vert_rate, distance, track, msgs, seen, rssi, lat, lon, data_source, military, ws, wd, noSort)
 - sortByReverse - reverse the sorting specified using sortBy
 
 There is a setting in the webinterface to update the URL according to used filters, this can be simpler than building the query string by hand.
@@ -50,7 +50,8 @@ See the main readme for more examples on how to use the filters
 - mapDim=0.1-1.0 - reduce map brightness (negative values increase brightness)
 - mapContrast=0.1-1.0 - increase the map contrast (negative values decrease brightness)
 - filterMaxRange=value - maximum distance of rendered tracks.
-- baseMap=maptype - change the map type (as defined in config.js).
+- baseMap=maptype - change the map type (as defined in config.js / layers.js)
+- overlays=o1,o2 - add overlay layers separated with comma (see config.js / layers.js)
 - mapOrientation=0-360 - normally true north faces up, use this to change which true direction is pointing up.
 - monochromeMarkers=xxxxxx - set constant html color for markers (parameter is an hexadecimal color).
 - monochromeTracks=xxxxxx - set constant html color for tracks (parameter is an hexadecimal color).
@@ -69,6 +70,7 @@ See the main readme for more examples on how to use the filters
 - rangeRings=0,1 - 0 or 1 to enable or disable
 - altitudeChart=0,1 - 0 or 1 to enable or disable
 - SiteLat=45.0 SiteLon=10.0 - Override the receiver location for this visit
+- routeDisplay=icao - Comma separated list of what shall be shown, valid values: iata, icao, city
 
 ## Toggles
 
