@@ -352,9 +352,7 @@ let useIataAirportCodes = true; // DEPRECATED, forces routeDisplay to icao when 
 // configure route display, possible values: iata, icao, city (can use multiple like this: 'iata,city')
 let routeDisplay = 'iata';
 // which routeApi service to use
-let routeApiUrl = "https://adsb.im/api/0/routeset";
-// alternative: "https://api.adsb.lol/api/0/routeset";
-// routeApiUrl = ""; // to disable route API so it can't be enabled by a website visitor
+let routeApiUrl = "";
 let debugRoute = false; // bunch of debugging console output for route api
 
 // show a link to jetphotos, only works if planespottersAPI is disabled

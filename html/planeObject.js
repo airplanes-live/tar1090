@@ -2928,11 +2928,6 @@ PlaneObject.prototype.routeCheck = function() {
         if (!this.position) {
             // no lookup (for now)
             return;
-        } else if (showTrace || replay) {
-            if (!routeApiUrl.includes("adsb.im")) {
-                route_check['lat'] = this.position[1];
-                route_check['lng'] = this.position[0];
-            }
         } else {
             route_check['lat'] = this.position[1];
             route_check['lng'] = this.position[0];

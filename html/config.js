@@ -204,7 +204,7 @@ ColorByAlt = {
 //SiteCirclesLineDash = [5, 5]; // null - solid line, [5, 5] - dashed line with 5 pixel lines and spaces in between
 
 // Controls page title, righthand pane when nothing is selected
-//PageName = "tar1090";
+PageName = "Globe - Watch Airplanes Live";
 
 // Show country flags by ICAO addresses?
 //ShowFlags = true;
@@ -264,10 +264,7 @@ MapboxAPIKey = null;
 // imageConfigText = "";
 
 //flightawareLinks = false;
-//shareBaseUrl = 'https://adsb.lol/';
-//shareBaseUrl = 'https://globe.adsb.fi/';
-//shareBaseUrl = 'https://globe.airplanes.live/';
-//shareBaseUrl = 'https://globe.adsbexchange.com/';
+shareBaseUrl = 'https://globe.airplanes.live/';
 // planespottersLinks = false;
 
 // show links to various registration websites (not all countries)
@@ -335,8 +332,6 @@ HideCols = [
 // configure route display, possible values: iata, icao, city (can use multiple like this: iata+city)
 // routeDisplay = 'iata';
 // which routeApi service to use
-// routeApiUrl = "https://adsb.im/api/0/routeset";
-// routeApiUrl = "https://api.adsb.lol/api/0/routeset";
 // routeApiUrl = ""; // to disable route API so it can't be enabled by a website visitor
 
 // show a link to jetphotos, only works if planespottersAPI is disabled
