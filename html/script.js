@@ -8,9 +8,10 @@
 g.planes        = {};
 g.planesOrdered = [];
 g.route_cache = [];
-g.route_check_array = [];
+g.route_check_todo = {};
 g.route_check_in_flight = false;
-g.route_cache_timer = new Date().getTime() / 1000 + 1; // one second from now
+g.route_next_lookup = 0;
+g.route_last_lookup = 0;
 
 g.mapOrientation = mapOrientation;
 
@@ -54,7 +55,6 @@ let iconSize = 1;
 let debugTracks = false;
 let verboseUpdateTrack = false;
 let debugAll = false;
-let debugRoute = false;
 let trackLabels = false;
 let multiSelect = false;
 let uat_data = null;
@@ -97,10 +97,6 @@ let traceDate = null;
 let traceDateString = null;
 let traceOpts = {};
 let icaoParam = null;
-let globalScale = 1;
-let userScale = 1;
-let iconScale = 1;
-let labelScale = 1;
 let newWidth = lineWidth;
 let SiteOverride = (SiteLat != null && SiteLon != null);
 let onJumpInput = null;
@@ -129,7 +125,7 @@ let labels_top = false;
 let lockDotCentered = false;
 let overrideMapType = null;
 let layerMoreContrast = false;
-let layerExtraDim = 0;
+let layerDimFactor = 0;
 let layerExtraContrast = 0;
 let shareFiltersParam = false;
 let lastRequestSize = 0;
@@ -190,13 +186,17 @@ let showingReplayBar = false;
 
 function processAircraft(ac, init, uat) {
     const isArray = Array.isArray(ac);
-    const hex = isArray ? ac[0] : ac.hex;
+    let hex = isArray ? ac[0] : ac.hex;
 
     if (icaoFilter && !icaoFilter.includes(hex))
         return;
 
     if (icaoBlacklist && icaoBlacklist.includes(hex))
         return;
+
+    if (MergeNonIcao && hex.startsWith('~')) {
+        hex = hex.slice(1);
+    }
 
     const type = isArray ? ac[7] : ac.type;
     if (g.historyKeep && !g.historyKeep[hex] && type != 'adsc') {
@@ -597,7 +597,7 @@ function fetchData(options) {
         for (let i in uuid) {
             ac_url.push('uuid/?feed=' + uuid[i]);
         }
-    } else if (reApi) {
+    } else if (reApi || filterUuid) {
         let url = 're-api/?' + (binCraft ? 'binCraft' : 'json');
         url += zstd ? '&zstd' : '';
         url += onlyMilitary ? '&filter_mil' : '';
@@ -626,6 +626,10 @@ function fetchData(options) {
                 }
                 url = url.slice(0, -1); // remove trailing comma
             }
+        }
+
+        if (filterUuid) {
+            url += '&filter_uuid=' + filterUuid;
         }
 
         ac_url.push(url);
@@ -1643,6 +1647,10 @@ jQuery('#selected_altitude_geom1')
     });
 
     if (routeApiUrl) {
+        if (location.protocol == 'http:' && routeApiUrl == "https://adsb.im/api/0/routeset") {
+            // adsb.im API provider kindly asks that tar1090 uses http for the route API if possible
+            routeApiUrl = "http://adsb.im/api/0/routeset";
+        }
         new Toggle({
             key: "useRouteAPI",
             display: "Lookup route",
@@ -1659,6 +1667,13 @@ jQuery('#selected_altitude_geom1')
                 }
             }
         });
+        if (useIataAirportCodes == false) {
+            routeDisplay = 'icao'; // cope with deprecated useIata var
+        }
+        if (usp.has('routeDisplay')) {
+            routeDisplay = usp.get('routeDisplay');
+        }
+        routeDisplay = routeDisplay.split(',');
     } else {
         useRouteAPI = false;
     }
@@ -1758,10 +1773,7 @@ jQuery('#selected_altitude_geom1')
 function initLegend(colors) {
     let html = '';
     html += '<div class="legendTitle" style="background-color:' + colors['adsb'] + ';">ADS-B</div>';
-    if (!globeIndex)
-        html += '<div class="legendTitle" style="background-color:' + colors['uat'] + ';">UAT / ADS-R</div>';
-    if (globeIndex)
-        html += '<div class="legendTitle" style="background-color:' + colors['uat'] + ';">ADS-C/R / UAT</div>';
+    html += '<div class="legendTitle" style="background-color:' + colors['uat'] + ';">UAT / ADS-R</div>';
     html += '<div class="legendTitle" style="background-color:' + colors['mlat'] + ';">MLAT</div>';
     html += '<br>';
     html += '<div class="legendTitle" style="background-color:' + colors['tisb'] + ';">TIS-B</div>';
@@ -1771,6 +1783,7 @@ function initLegend(colors) {
         html += '<div class="legendTitle" style="background-color:' + colors['other'] + ';">Other</div>';
     if (aiscatcher_server)
         html += '<div class="legendTitle" style="background-color:' + colors['ais'] + ';">AIS</div>';
+    html += '<div class="legendTitle" style="background-color:' + colors['adsc'] + `;">${jaeroLabel}</div>`;
 
     document.getElementById('legend').innerHTML = html;
 }
@@ -1788,7 +1801,7 @@ function initSourceFilter(colors) {
     html += createFilter(colors['tisb'], 'TIS-B', sources[3]);
     html += createFilter(colors['modeS'], 'Mode-S', sources[4]);
     html += createFilter(colors['other'], 'Other', sources[5]);
-    html += createFilter(colors['uat'], 'ADS-C', sources[6]);
+    html += createFilter(colors['adsc'], jaeroLabel, sources[6]);
 
     if (aiscatcher_server) {
         html += createFilter(colors['ais'], 'AIS', sources[7]);
@@ -2350,7 +2363,7 @@ function startPage() {
 function webglAddLayer() {
     let success = false;
 
-    const icao = '~c0ffee';
+    const icao = 'c0ffee';
 
     if (icaoFilter != null) {
         icaoFilter.push(icao);
@@ -2358,7 +2371,7 @@ function webglAddLayer() {
 
     processAircraft({hex: icao, lat: CenterLat, lon: CenterLon, type: 'tisb_other', seen: 0, seen_pos: 0,
         alt_baro: 25000, });
-    let plane = g.planes['~c0ffee'];
+    let plane = g.planes[icao];
 
     let spriteSrc = spritesDataURL ? spritesDataURL : 'images/sprites.png';
     //console.log(spriteSrc);
@@ -2775,14 +2788,16 @@ function showHideButtons() {
 // Initalizes the map and starts up our timers to call various functions
 function initMap() {
 
-    CenterLon = Number(loStore['CenterLon']) || DefaultCenterLon;
-    CenterLat = Number(loStore['CenterLat']) || DefaultCenterLat;
+    CenterLon = Number(lopaStore['CenterLon']) || DefaultCenterLon;
+    CenterLat = Number(lopaStore['CenterLat']) || DefaultCenterLat;
     //console.log("initMap Centerlat: " + CenterLat);
-    g.zoomLvl = Number(loStore['zoomLvl']) || DefaultZoomLvl;
+    g.zoomLvl = Number(lopaStore['zoomLvl']) || DefaultZoomLvl;
     g.zoomLvlCache = g.zoomLvl;
 
+    // always hide this, it really only shows the number of positions saved
+    jQuery('#dump1090_total_history_td').hide();
+
     if (globeIndex && aggregator) {
-        jQuery('#dump1090_total_history_td').hide();
         jQuery('#dump1090_message_rate_td').hide();
     }
 
@@ -2975,12 +2990,19 @@ function initMap() {
 
     initFilters();
 
+    ol.control.LayerSwitcher.forEachRecursive(layers_group, function(lyr) {
+        if (lyr.get('type') != 'base')
+            return;
+        lyr.dimKey = lyr.on('postrender', dim);
+    });
+
     new Toggle({
         key: "MapDim",
         display: "Dim Map",
         container: "#settingsLeft",
         init: MapDim,
         setState: function(state) {
+            /*
             if (!state) {
                 ol.control.LayerSwitcher.forEachRecursive(layers_group, function(lyr) {
                     if (lyr.get('type') != 'base')
@@ -2994,6 +3016,7 @@ function initMap() {
                     lyr.dimKey = lyr.on('postrender', dim);
                 });
             }
+            */
             if (loadFinished) {
                 OLMap.render();
             }
@@ -3535,6 +3558,7 @@ function refreshSelected() {
     if (useRouteAPI) {
         if (selected.routeString) {
             jQuery('#selected_route').updateText(selected.routeString);
+            jQuery('#selected_route').attr('title', selected.routeVerbose);
         } else {
             jQuery('#selected_route').updateText('n/a');
         }
@@ -3971,10 +3995,16 @@ function refreshFeatures() {
         text: 'Callsign' };
     if (routeApiUrl) {
         cols.route = {
-            sort: function () { sortBy('route', compareAlpha, function(x) { return x.routeString }); },
+            sort: function () { sortBy('route', compareAlpha, function(x) { return x.routeColumn }); },
             value: function(plane) {
-                return ((useRouteAPI && plane.routeString) || '');
+                if (!useRouteAPI) return '';
+                if (plane.routeString) {
+                    return '<span title="' + plane.routeVerbose + '">' + plane.routeColumn + '</span>';
+                } else {
+                    return '';
+                }
             },
+            html: true,
             text: 'Route' };
     }
     cols.registration = {
@@ -4678,9 +4708,9 @@ function resetMap() {
             CenterLat = DefaultCenterLat;
         }
         // Reset loStore values and map settings
-        loStore['CenterLat'] = CenterLat
-        loStore['CenterLon'] = CenterLon
-        //loStore['zoomLvl']   = g.zoomLvl = DefaultZoomLvl;
+        lopaStore['CenterLat'] = CenterLat
+        lopaStore['CenterLon'] = CenterLon
+        //lopaStore['zoomLvl']   = g.zoomLvl = DefaultZoomLvl;
 
         // Set and refresh
         //OLMap.getView().setZoom(g.zoomLvl);
@@ -4894,7 +4924,7 @@ function buttonActive(id, state) {
     }
 }
 
-function toggleIsolation(state) {
+function toggleIsolation(state, noRefresh) {
     let prevState = onlySelected;
     if (showTrace && state !== "on")
         return;
@@ -4906,7 +4936,7 @@ function toggleIsolation(state) {
 
     buttonActive('#I', onlySelected);
 
-    if (prevState != onlySelected)
+    if (prevState != onlySelected && noRefresh != "noRefresh")
         refreshFilter();
 
     fetchData({force: true});
@@ -4939,8 +4969,17 @@ function togglePersistence() {
 
 function dim(evt) {
     try {
-        const dim = mapDimPercentage * (1 + 0.25 * toggles['darkerColors'].state) + layerExtraDim;
-        const contrast = mapContrastPercentage * (1 + 0.1 * toggles['darkerColors'].state) + layerExtraContrast;
+        let currentDimPercentage = mapDimPercentage * layerDimFactor;
+        let currentContrastPercentage = mapContrastPercentage + layerExtraContrast;
+
+        if (!toggles['MapDim'].state) {
+            // slight dim even if disabled
+            currentDimPercentage /= 4;
+            currentContrastPercentage /= 4;
+        }
+
+        const dim = currentDimPercentage * (1 + 0.25 * toggles['darkerColors'].state);
+        const contrast = currentContrastPercentage * (1 + 0.1 * toggles['darkerColors'].state);
         if (dim > 0.0001) {
             evt.context.globalCompositeOperation = 'multiply';
             evt.context.fillStyle = 'rgba(0,0,0,'+dim+')';
@@ -5417,6 +5456,14 @@ function initFilters() {
         name: 'registration',
         table: 'filterTable3'
     });
+    if (routeApiUrl) {
+        new Filter({
+            key: 'route',
+            field: 'routeString',
+            name: 'route',
+            table: 'filterTable3'
+        });
+    }
     new Filter({
         key: 'country',
         field: 'country',
@@ -5603,7 +5650,7 @@ function changeZoom(init) {
     if (!init && Math.abs(g.zoomLvl-g.zoomLvlCache) < 0.4)
         return;
 
-    loStore['zoomLvl'] = g.zoomLvl;
+    lopaStore['zoomLvl'] = g.zoomLvl;
     g.zoomLvlCache = g.zoomLvl;
 
     if (!init && showTrace)
@@ -5633,7 +5680,7 @@ function setGlobalScale(scale, init) {
     globalScale = scale;
     document.documentElement.style.setProperty("--SCALE", globalScale);
 
-    labelFont = "bold " + (12 * globalScale * labelScale) + "px/" + (14 * globalScale * labelScale) + "px Tahoma, Verdana, Helvetica, sans-serif";
+    labelFont = `${labelStyle} ${(12 * globalScale * labelScale)}px/${(14 * globalScale * labelScale)}px ${labelFamily}`;
 
     checkScale();
     setLineWidth();
@@ -5665,8 +5712,8 @@ function changeCenter(init) {
         return;
     }
 
-    loStore['CenterLon'] = CenterLon = center[0];
-    loStore['CenterLat'] = CenterLat = center[1];
+    lopaStore['CenterLon'] = CenterLon = center[0];
+    lopaStore['CenterLat'] = CenterLat = center[1];
 
     if (!init) {
         updateAddressBar();
@@ -5695,11 +5742,11 @@ function checkMovement() {
         return;
     }
 
-    let currentTime = new Date().getTime()/1000;
-    if (currentTime > g.route_cache_timer) {
+    let currentTime = Date.now()/1000;
+    if (currentTime > g.route_next_lookup && !g.route_check_in_flight) {
         // check if it's time to send a batch of request to the API server
-        g.route_cache_timer = currentTime + 1;
-        routeDoLookup(currentTime);
+        g.route_next_lookup = currentTime + 1;
+        routeDoLookup();
     }
 
     const zoom = OLMap.getView().getZoom();
@@ -6339,7 +6386,7 @@ let updateAddressBarString = "";
 function updateAddressBar() {
     if (!window.history || !window.history.replaceState)
         return;
-    if (heatmap || pTracks || !CenterLat || uuid)
+    if (heatmap || (pTracks && !haveTraces) || !CenterLat || uuid)
         return;
 
     let string = '';
@@ -6560,8 +6607,9 @@ function toggleShowTrace() {
 
         toggleFollow(false);
         showTraceWasIsolation = onlySelected;
-        toggleIsolation("on");
+        toggleIsolation("on", "noRefresh");
         shiftTrace();
+        refreshFilter();
     } else {
         jQuery("#selected_showTrace_hide").show();
 
@@ -6626,8 +6674,9 @@ function legShift(offset, plane) {
         if (traceOpts.startStamp != null && timestamp < traceOpts.startStamp) {
             continue;
         }
-        if (traceOpts.endStamp != null && timestamp > traceOpts.endStamp)
+        if (traceOpts.endStamp != null && timestamp > traceOpts.endStamp) {
             break;
+        }
         if (legStart == null) {
             legStart = i;
             i++;
@@ -6714,7 +6763,11 @@ function shiftTrace(offset) {
 
     jQuery('#leg_sel').text('Loading ...');
     if (!traceDate || offset == "today") {
-        setTraceDate({ ts: new Date().getTime() });
+        if (replay) {
+            setTraceDate({ ts: replay.ts.getTime() });
+        } else {
+            setTraceDate({ ts: new Date().getTime() });
+        }
     } else if (offset) {
         setTraceDate({ ts: traceDate.getTime() + offset * 86400 * 1000 });
     }
@@ -6942,7 +6995,9 @@ function initSitePos() {
     if (initSitePosFirstRun) {
         initSitePosFirstRun = false;
         const sortBy = usp.get('sortBy');
-        if (sortBy) {
+        if (sortBy == "nosort" ) {
+            // no sorting
+        } else if (sortBy) {
             TAR.planeMan.ascending = true;
             TAR.planeMan.cols[sortBy].sort();
             if (usp.has('sortByReverse')) {
@@ -7234,7 +7289,7 @@ function getTrace(newPlane, hex, options) {
 
     // use non historic traces until 60 min after midnight
     let today = new Date();
-    let refDate = (replay ? replay.ts : traceDate) || today;
+    let refDate = ((replay && !showTrace) ? replay.ts : traceDate) || today;
 
     if ((showTrace || replay) && !(today.getTime() > refDate.getTime() && today.getTime() < refDate.getTime() + (24 * 3600 + 60 * 60) * 1000)) {
         URL1 = null;
@@ -8280,7 +8335,7 @@ function showReplayBar(){
             value: Math.pow(replay.speed, 1 / slideBase),
             step: 0.07,
             min: Math.pow(1, 1 / slideBase),
-            max: Math.pow(250, 1 / slideBase),
+            max: Math.pow(1000, 1 / slideBase),
             slide: function(event, ui) {
                 replay.speed = Math.pow(ui.value, slideBase).toFixed(1);
                 jQuery('#replaySpeedHint').text('Speed: ' + replay.speed + 'x');
@@ -8884,23 +8939,8 @@ function printTrace() {
     _printTrace(SelectedPlane.recentTrace.trace);
 }
 
-
-// Create a "hidden" input
-let shareLinkInput = document.createElement("input");
-shareLinkInput.hidden = true;
-// Append it to the body
-document.body.appendChild(shareLinkInput);
-
 function copyShareLink() {
-    // Assign shareLinkInput the value we want to copy
-    shareLinkInput.setAttribute("value", shareLink);
-
-    // Highlight its content
-    shareLinkInput.select();
-    // Copy the highlighted text
-    document.execCommand("copy");
-    // deselect input field
-    shareLinkInput.blur();
+    navigator.clipboard.writeText(shareLink);
 
     copyLinkTime = new Date().getTime();
     copiedIcao = SelectedPlane.icao;
@@ -8933,15 +8973,22 @@ function setSelectedIcao() {
 
 function mapTypeSettings() {
     if (MapType_tar1090.startsWith('maptiler_sat') || MapType_tar1090.startsWith('maptiler_hybrid')) {
-        layerExtraDim = -0.30;
+        layerDimFactor = 0.25;
+    } else if (MapType_tar1090 == 'esri') {
+        layerDimFactor = 0.5;
+    } else if (MapType_tar1090 == 'gibs') {
+        layerDimFactor = 0.5;
     } else if (MapType_tar1090.startsWith('carto_raster')) {
-        layerExtraDim = -0.15;
+        layerDimFactor = 0.70;
         layerExtraContrast = 0.6;
     } else if (MapType_tar1090.startsWith('carto_light')) {
-        layerExtraDim = -0.05;
+        layerDimFactor = 0.80;
         layerExtraContrast = 0.2;
+    } else if (MapType_tar1090.startsWith('carto_dark')) {
+        layerDimFactor = 0.25;
+        layerExtraContrast = 0.05;
     } else {
-        layerExtraDim = 0;
+        layerDimFactor = 1;
         layerExtraContrast = 0;
     }
 }

@@ -79,6 +79,7 @@ let openAIPOpacity = 0.70;
 let tfrOpacity = 0.70;
 
 let offlineMapDetail = -1;
+let offlineMapDetailOFM = -1;
 
 // -- Marker settings -------------------------------------
 // (marker == aircraft icon)
@@ -256,7 +257,19 @@ let utcTimesHistoric = true;
 let labelZoom = 0;
 let labelZoomGround = 14.8;
 
-let labelFont = 'bold 12px tahoma';
+// font family for labels, default bold, could be empty or italic as well
+let labelStyle = 'bold';
+let labelFamily = 'Tahoma, Verdana, Helvetica, sans-serif';
+let labelScale = 1;
+
+// labelFont this is now generated from the detailed settings above, setting this in config.js won't
+// have ANY effect
+let labelFont;
+
+// some scaling for fonts and things
+let globalScale = 1;
+let userScale = 1;
+let iconScale = 1;
 
 let displayUATasADSB = false;
 let uatNoTISB = false;
@@ -334,10 +347,15 @@ let planespottingAPI = false;
 
 // get flight route from routeApi service default setting (toggle via settings checkbox)
 let useRouteAPI = false;
+// show IATA airport codes instead of ICAO when using the route API
+let useIataAirportCodes = true; // DEPRECATED, forces routeDisplay to icao when set to false
+// configure route display, possible values: iata, icao, city (can use multiple like this: 'iata,city')
+let routeDisplay = 'iata';
 // which routeApi service to use
 let routeApiUrl = "https://adsb.im/api/0/routeset";
 // alternative: "https://api.adsb.lol/api/0/routeset";
 // routeApiUrl = ""; // to disable route API so it can't be enabled by a website visitor
+let debugRoute = false; // bunch of debugging console output for route api
 
 // show a link to jetphotos, only works if planespottersAPI is disabled
 let jetphotoLinks = false;
@@ -372,6 +390,7 @@ let askLocation = false; // requires https for geolocation
 let filterMaxRange = 1e8; // 100 000 km should include all planes on earth ;)
 
 let jaeroTimeout = 35 * 60; // in seconds
+let jaeroLabel = "ADS-C"; // relabel the ADS-C data if used for other purposes (i.e. HFDL / acars2pos)
 
 let seenTimeout = 58; // in seconds
 let seenTimeoutMlat = 58; // in seconds
@@ -405,7 +424,7 @@ let tableColors = {
         mlat:      "#FDF7DD",
         uat:       "#C4FFDC",
         adsr:      "#C4FFDC",
-        adsc:      "#C4FFDC",
+        adsc:      "#9efa9e",
         modeS:     "#d8d8ff",
         tisb:      "#ffd8e6",
         unknown:   "#dcdcdc",
@@ -417,7 +436,7 @@ let tableColors = {
         mlat:      "#F1DD83",
         uat:       "#66FFA6",
         adsr:      "#66FFA6",
-        adsc:      "#66FFA6",
+        adsc:      "#75f075",
         modeS:     "#BEBEFF",
         tisb:      "#FFC1D8",
         unknown:   "#bcbcbc",
@@ -452,3 +471,5 @@ let SiteLon     = null;
 // Default center of the map if no Site location is set
 let DefaultCenterLat = 40.56;
 let DefaultCenterLon = -73.66
+
+let MergeNonIcao = false; // set to true to merge non icao hex with the icao hex (remove the ~)

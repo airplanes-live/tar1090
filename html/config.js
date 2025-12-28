@@ -52,23 +52,27 @@
 // actual_range_show = true;
 
 // which map is displayed to new visitors
-// MapType_tar1090 = "carto_light_all";
+// MapType_tar1090 = "osm";
 //
 // valid values for the above setting:
 // osm
+// OpenFreeMapBright
+// OpenFreeMapLiberty
+// OpenFreeMapPositron
+// OpenFreeMapDark
+// OpenFreeMapFiord
 // esri
+// esri_gray
+// esri_streets
 // carto_light_all
 // carto_light_nolabels
 // carto_dark_all
 // carto_dark_nolabels
-// gibs
-// osm_adsbx
-// chartbundle_sec: "Sectional Charts",
-// chartbundle_tac: "Terminal Area Charts",
-// chartbundle_hel: "Helicopter Charts",
-// chartbundle_enrl: "IFR Enroute Low Charts",
-// chartbundle_enra: "IFR Area Charts",
-// chartbundle_enrh: "IFR Enroute High Charts"
+// gibs: clouds
+// VFR_Sectional: "Sectional Charts",
+// VFR_Terminal: "Terminal Area Charts",
+// IFR_AreaLow: "IFR Area Charts",
+// IFR_High: "IFR Enroute High Charts"
 //
 // only with bing key:
 // bing_aerial
@@ -205,9 +209,6 @@ ColorByAlt = {
 // Show country flags by ICAO addresses?
 //ShowFlags = true;
 
-// Set to false to disable the ChartBundle base layers (US coverage only)
-//ChartBundleLayers = true;
-
 // Provide a Bing Maps API key here to enable the Bing imagery layer.
 // You can obtain a free key (with usage limits) at
 // https://www.bingmapsportal.com/ (you need a "basic key")
@@ -239,7 +240,14 @@ MapboxAPIKey = null;
 //labelZoom = 8;
 //labelZoomGround = 12.5;
 
-//labelFont = 'bold 12px tahoma';
+// font family for labels, default bold, could be empty or italic as well
+// labelStyle = 'bold';
+// labelFamily = 'Tahoma, Verdana, Helvetica, sans-serif';
+// labelScale = 1;
+
+// globalScale = 1;
+// userScale = 1;
+// iconScale = 1;
 
 //displayUATasADSB = false;
 //uatNoTISB = true;
@@ -324,6 +332,8 @@ HideCols = [
 
 // get flight route from routeApi service default setting (toggle via settings checkbox)
 // useRouteAPI = false;
+// configure route display, possible values: iata, icao, city (can use multiple like this: iata+city)
+// routeDisplay = 'iata';
 // which routeApi service to use
 // routeApiUrl = "https://adsb.im/api/0/routeset";
 // routeApiUrl = "https://api.adsb.lol/api/0/routeset";
@@ -366,6 +376,7 @@ HideCols = [
 //
 //
 //jaeroTimeout = 35 * 60; // in seconds
+//jaeroLabel = "ADS-C"; // relabel the ADS-C data if used for other purposes (i.e. HFDL / acars2pos)
 
 //seenTimeout = 58; // in seconds
 //seenTimeoutMlat = 58; // in seconds
@@ -427,3 +438,6 @@ tableColors = {
 // Default center of the map if no Site location is set
 //DefaultCenterLat = 45.0;
 //DefaultCenterLon = 9.0;
+//
+
+// MergeNonIcao = false; // set to true to merge non icao hex with the icao hex (remove the ~)

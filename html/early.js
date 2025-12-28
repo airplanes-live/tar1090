@@ -62,6 +62,8 @@ let calcOutlineData = null;
 let uuid = null;
 let uuidCache = [];
 
+let filterUuid = null;
+
 let inhibitFetch = false;
 let zstdDecode = null;
 
@@ -177,6 +179,17 @@ if (0 && window.self != window.top) {
     }
 }
 
+const lopaStore = new Proxy(loStore, {
+    get(loStore, key) {
+        key = String(window.location.origin) + String(window.location.pathname) + key;
+        return loStore[key];
+    },
+    set(loStore, key, value) {
+        key = String(window.location.origin) + String(window.location.pathname) + key;
+        return loStore[key] = value;
+    },
+});
+
 let firstError = true;
 if (usp.has('showerrors') || usp.has('jse')) {
     window.onerror = function (msg, url, lineNo, columnNo, error) {
@@ -218,16 +231,12 @@ if (feed != null) {
         for (let i in split) {
             uuid.push(encodeURIComponent(split[i]));
         }
-        if (uuid[0].length > 18 && window.location.href.match(/adsbexchange.com/)) {
-            console.log('redirecting the idiot, oui!');
-            let URL = 'https://www.adsbexchange.com/api/feeders/tar1090/?feed=' + uuid[0];
-            console.log(URL);
-            //window.history.pushState(URL, "Title", URL);
-            window.location.href = URL;
-        }
     } else {
         console.error('uuid / feed fail!');
     }
+}
+if (usp.has('uuid')) {
+    filterUuid = usp.get('uuid');
 }
 if (usp.has('tfrs')) {
     tfrs = true;
@@ -556,7 +565,13 @@ if (uuid != null) {
 
         haveTraces = Boolean(data.haveTraces || data.globeIndexGrid);
 
-        if (heatmap || replay) {
+        if (data.readsb) {
+            jQuery("#decoder_pre").text("decoder:");
+            jQuery("#decoder_link").text("readsb");
+            jQuery("#decoder_link").attr("href", "https://github.com/wiedehopf/readsb#readsb");
+        }
+
+        if (heatmap || replay || filterUuid) {
             if (replay && data.globeIndexGrid != null)
                 globeIndex = 1;
             HistoryChunks = false;
@@ -585,6 +600,9 @@ if (uuid != null) {
                 console.log("Chunks enabled!");
                 chunkNames = (pTracks ? data.chunks_all : data.chunks) || [];
                 nHistoryItems = chunkNames.length;
+                if (usp.has('showTrace')) {
+                    nHistoryItems = 0;
+                }
                 enable_uat = (data.enable_uat == "true");
                 enable_pf_data = (data.pf_data == "true");
                 if (enable_uat)
