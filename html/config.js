@@ -337,7 +337,7 @@ HideCols = [
 // show a link to jetphotos, only works if planespottersAPI is disabled
 // jetphotoLinks = false;
 
-// showSil = false;
+showSil = true;
 // this shows small pictures in the details but they need to be provided by the user in the folder /usr/local/share/tar1090/aircraft_sil
 // showPictures needs to be enabled as well
 // to only get these pictures disable the planespottersAPI
