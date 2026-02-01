@@ -1,8 +1,6 @@
 name: Docker build
 
 on:
-  schedule:
-    - cron: "0 5 * * 1"
   push:
     branches:
       - "prod"
@@ -25,11 +23,11 @@ jobs:
           echo "name=short_sha::${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
