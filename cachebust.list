@@ -7,5 +7,6 @@ formatter.js
 layers.js
 markers.js
 planeObject.js
+script.js
 registrations.js
 style.css

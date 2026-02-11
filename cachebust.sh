@@ -8,6 +8,9 @@ if [[ -z "$1" ]] || [[ -z "$2" ]]; then
     exit 1
 fi
 
+# most common way to use this:
+# ./cachebust.sh cachebust.list <tar1090_html_folder>
+
 LISTPATH="$1"
 HTMLFOLDER="$2"
 
@@ -26,10 +29,5 @@ function moveFile() {
 while read -r FILE; do
     moveFile "$FILE"
 done < "$LISTPATH"
-
-sed -i "${sedreplaceargs[@]}" "$HTMLFOLDER"/script.js
-
-# this needs to happen after it was modified
-moveFile script.js
 
 sed -i "${sedreplaceargs[@]}" "$HTMLFOLDER"/index.html
