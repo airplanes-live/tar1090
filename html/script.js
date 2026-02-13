@@ -3128,6 +3128,9 @@ function initMap() {
                 filterTISB = !filterTISB;
                 refreshFilter();
                 break;
+            case "Y":
+                showReplayBar();
+                break;
             case "u":
                 toggleMilitary();
                 break;
