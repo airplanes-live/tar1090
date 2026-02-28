@@ -597,7 +597,26 @@ function fetchData(options) {
         for (let i in uuid) {
             ac_url.push('uuid/?feed=' + uuid[i]);
         }
-    } else if (reApi || filterUuid) {
+    } else if (filterUuid) {
+        for (let i in filterUuid) {
+            let url = 're-api/?' + (binCraft ? 'binCraft' : 'json');
+            url += zstd ? '&zstd' : '';
+            url += onlyMilitary ? '&filter_mil' : '';
+            lastRequestBox = requestBoxString();
+
+            url += '&box=' + lastRequestBox;
+
+            if (SelPlanes.length > 0) {
+                url += '&find_hex='
+                for (let k in SelPlanes) {
+                    url += SelPlanes[k].icao + ','
+                }
+                url = url.slice(0, -1); // remove trailing comma
+            }
+            url += '&filter_uuid=' + filterUuid[i];
+            ac_url.push(url);
+        }
+    } else if (reApi) {
         let url = 're-api/?' + (binCraft ? 'binCraft' : 'json');
         url += zstd ? '&zstd' : '';
         url += onlyMilitary ? '&filter_mil' : '';
@@ -626,10 +645,6 @@ function fetchData(options) {
                 }
                 url = url.slice(0, -1); // remove trailing comma
             }
-        }
-
-        if (filterUuid) {
-            url += '&filter_uuid=' + filterUuid;
         }
 
         ac_url.push(url);
@@ -2795,7 +2810,7 @@ function initMap() {
     // always hide this, it really only shows the number of positions saved
     jQuery('#dump1090_total_history_td').hide();
 
-    if (globeIndex && aggregator) {
+    if ((globeIndex && aggregator) || filterUuid) {
         jQuery('#dump1090_message_rate_td').hide();
     }
 
@@ -8763,7 +8778,7 @@ function loadEGM() {
 }
 function adjust_geom_alt(alt, pos) {
     if (geomUseEGM && egmLoaded) {
-        if (alt == null) {
+        if (alt == null || pos == null) {
             return alt;
         }
         return egm96.ellipsoidToEgm96(pos[1], pos[0], alt * 0.3048) / 0.3048;
