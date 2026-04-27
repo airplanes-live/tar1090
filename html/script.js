@@ -95,6 +95,9 @@ let showTraceWasIsolation = false;
 let showTraceTimestamp = null;
 let traceDate = null;
 let traceDateString = null;
+let traceDateEnd = null;
+let traceDateEndString = null;
+const traceRangeMaxDays = 31;
 let traceOpts = {};
 let icaoParam = null;
 let newWidth = lineWidth;
@@ -6010,8 +6013,10 @@ function parseURLIcaos() {
     }
 }
 function processURLParams(){
-    if (usp.has('showTrace')) {
-        let date = setTraceDate({string: usp.get('showTrace')});
+    if (usp.has('showTrace') || (usp.has('startTrace') && usp.has('endTrace'))) {
+        let startStr = usp.get('showTrace') || usp.get('startTrace');
+        let endStr = usp.get('startTrace') && usp.get('endTrace') ? usp.get('endTrace') : null;
+        let date = setTraceDate({string: startStr, endString: endStr});
         if (date && usp.has('startTime')) {
             let numbers =  usp.get('startTime').split(':');
             traceOpts.startHours = numbers[0] ? parseInt(numbers[0]) : 0;
@@ -6430,7 +6435,11 @@ function updateAddressBar() {
 
     if (SelPlanes.length > 0 && (showTrace)) {
         string += (string ? '&' : '?');
-        string += 'showTrace=' + traceDateString;
+        if (traceDateEnd) {
+            string += 'startTrace=' + traceDateString + '&endTrace=' + traceDateEndString;
+        } else {
+            string += 'showTrace=' + traceDateString;
+        }
         if (legSel != -1)
             string += '&leg=' + (legSel + 1);
         if (traceOpts.startHours != null) {
@@ -6512,7 +6521,7 @@ function updateAddressBar() {
     }
     //console.log(shareLink);
 
-    if (!string && !usp.has('showTrace') && !usp.has('icao')) {
+    if (!string && !usp.has('showTrace') && !usp.has('startTrace') && !usp.has('endTrace') && !usp.has('icao')) {
         string = initialURL;
     } else {
         string = pathName + string;
@@ -6676,7 +6685,8 @@ function legShift(offset, plane) {
         traceOpts.showTime = null;
 
     if (!multiSelect && !plane.fullTrace) {
-        jQuery('#leg_sel').text('No Data available for\n' + traceDateString);
+        const dateLabel = traceDateEnd ? (traceDateString + ' to ' + traceDateEndString) : traceDateString;
+        jQuery('#leg_sel').text('No Data available for\n' + dateLabel);
         jQuery('#trace_time').text('UTC:\n');
     }
     if (!plane.fullTrace) {
@@ -6766,6 +6776,44 @@ function setTraceDate(options) {
 
     traceDateString = zDateString(traceDate);
 
+    let endNumbers = options.endString ? options.endString.split('-') : [];
+    let parsedEnd = null;
+    if (endNumbers.length == 3) {
+        parsedEnd = new Date();
+        parsedEnd.setUTCFullYear(endNumbers[0]);
+        parsedEnd.setUTCMonth(endNumbers[1] - 1, endNumbers[2]);
+    } else if (options.endTs) {
+        parsedEnd = new Date(options.endTs);
+    }
+
+    if (parsedEnd) {
+        parsedEnd.setUTCHours(0, 0, 0, 0);
+        if (parsedEnd.getTime() > tomorrow) {
+            parsedEnd = new Date(tomorrow);
+        }
+        if (parsedEnd.getTime() < traceDate.getTime()) {
+            let tmp = parsedEnd;
+            parsedEnd = traceDate;
+            traceDate = tmp;
+            traceDateString = zDateString(traceDate);
+        }
+        if (parsedEnd.getTime() === traceDate.getTime()) {
+            traceDateEnd = null;
+            traceDateEndString = null;
+        } else {
+            const maxRangeMs = traceRangeMaxDays * 86400e3;
+            if (parsedEnd.getTime() - traceDate.getTime() > maxRangeMs) {
+                console.log('trace range exceeds ' + traceRangeMaxDays + ' days, capping');
+                parsedEnd = new Date(traceDate.getTime() + maxRangeMs);
+            }
+            traceDateEnd = parsedEnd;
+            traceDateEndString = zDateString(traceDateEnd);
+        }
+    } else if (!options.preserveEnd) {
+        traceDateEnd = null;
+        traceDateEndString = null;
+    }
+
     return traceDate;
 }
 
@@ -6789,7 +6837,13 @@ function shiftTrace(offset) {
             setTraceDate({ ts: new Date().getTime() });
         }
     } else if (offset) {
-        setTraceDate({ ts: traceDate.getTime() + offset * 86400 * 1000 });
+        if (traceDateEnd) {
+            const rangeMs = traceDateEnd.getTime() - traceDate.getTime();
+            const newStart = traceDate.getTime() + offset * 86400 * 1000;
+            setTraceDate({ ts: newStart, endTs: newStart + rangeMs });
+        } else {
+            setTraceDate({ ts: traceDate.getTime() + offset * 86400 * 1000 });
+        }
     }
 
     //jQuery('#trace_date').text('UTC day:\n' + traceDateString);
@@ -7303,6 +7357,10 @@ function getTrace(newPlane, hex, options) {
 
     lastTraceGet = time;
 
+    if (showTrace && traceDateEnd) {
+        return getTraceRange(newPlane, hex, options);
+    }
+
     let URL1;
     let URL2;
     //console.log('Requesting trace: ' + hex);
@@ -7423,6 +7481,93 @@ function getTrace(newPlane, hex, options) {
             refreshSelected();
         }
         this.options = null;
+    });
+
+    return newPlane;
+}
+
+function getTraceRange(newPlane, hex, options) {
+    if (newPlane && (showTrace || showTraceExit)) {
+        newPlane.trace = [];
+        newPlane.recentTrace = null;
+        newPlane.fullTrace = null;
+    }
+
+    traceOpts.follow = (options.follow == true);
+
+    if (traceOpts.startHours == null || traceOpts.startHours < 0)
+        traceOpts.startStamp = traceDate.getTime() / 1000;
+    else
+        traceOpts.startStamp = traceDate.getTime() / 1000 + traceOpts.startHours * 3600 + traceOpts.startMinutes * 60 + traceOpts.startSeconds;
+
+    if (traceOpts.endHours == null || traceOpts.endHours >= 24)
+        traceOpts.endStamp = traceDateEnd.getTime() / 1000 + 24 * 3600;
+    else
+        traceOpts.endStamp = traceDateEnd.getTime() / 1000 + traceOpts.endHours * 3600 + traceOpts.endMinutes * 60 + traceOpts.endSeconds;
+
+    options.plane = `${newPlane.icao}`;
+    options.defer = jQuery.Deferred();
+
+    let days = [];
+    for (let t = traceDate.getTime(); t <= traceDateEnd.getTime(); t += 86400e3) {
+        days.push(new Date(t));
+    }
+
+    let merged = null;
+    let chain = jQuery.Deferred().resolve();
+    days.forEach(function(day) {
+        chain = chain.then(function() {
+            const dayMs = day.getTime();
+            const nowMs = Date.now();
+            const useLive = !trace_hist_only && (nowMs > dayMs) && (nowMs < dayMs + (24 * 3600 + 60 * 60) * 1000);
+            const url = useLive
+                ? 'data/traces/' + hex.slice(-2) + '/trace_full_' + hex + '.json'
+                : 'globe_history/' + zDateString(day).replace(/-/g, '/') + '/traces/' + hex.slice(-2) + '/trace_full_' + hex + '.json';
+            traceRate += useLive ? 2 : 3;
+
+            const dayDefer = jQuery.Deferred();
+            jQuery.ajax({ url: url, dataType: 'json' })
+                .done(function(data) {
+                    const normalized = normalizeTraceStamps(data);
+                    if (normalized && normalized.trace && normalized.trace.length) {
+                        if (!merged) {
+                            merged = normalized;
+                        } else {
+                            let lastSeen = merged.trace.length ? merged.trace[merged.trace.length - 1][0] : -Infinity;
+                            for (let i = 0; i < normalized.trace.length; i++) {
+                                if (normalized.trace[i][0] > lastSeen) {
+                                    merged.trace.push(normalized.trace[i]);
+                                    lastSeen = normalized.trace[i][0];
+                                }
+                            }
+                        }
+                    }
+                    dayDefer.resolve();
+                })
+                .fail(function() {
+                    dayDefer.resolve();
+                });
+            return dayDefer.promise();
+        });
+    });
+
+    chain.then(function() {
+        const plane = g.planes[options.plane];
+        if (!plane) {
+            options.defer && options.defer.resolve(options);
+            return;
+        }
+        plane.fullTrace = merged;
+        legShift(0, plane);
+        if (!multiSelect && showTraceTimestamp) {
+            gotoTime(showTraceTimestamp);
+        }
+        if (options.list) {
+            plane.updateLines();
+            getTrace(null, null, options);
+        }
+        options.defer && options.defer.resolve(options);
+        options.defer = null;
     });
 
     return newPlane;
