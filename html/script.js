@@ -1250,12 +1250,10 @@ function earlyInitPage() {
     jQuery("#altitude_filter_form").submit(onFilterByAltitude);
     jQuery("#source_filter_form").submit(updateSourceFilter);
     jQuery("#flag_filter_form").submit(updateFlagFilter);
-    jQuery("#interesting_filter_form").submit(updateInterestingFilter);
-
     jQuery("#altitude_filter_reset_button").click(onResetAltitudeFilter);
     jQuery("#source_filter_reset_button").click(onResetSourceFilter);
     jQuery("#flag_filter_reset_button").click(onResetFlagFilter);
-    jQuery("#interesting_filter_reset_button").click(onResetInterestingFilter);
+
 
     // Initialize other controls
     jQuery("#search_form").submit(onSearch);
@@ -1950,17 +1948,15 @@ function initInterestingFilter(colors) {
         jQuery('#interesting-most-watched').addClass('ui-selected');
     }
 
-    jQuery("#interestingFilter").selectable({
-        stop: function () {
-            // Enforce single-select: keep only the most-recently-selected li
-            var $selected = jQuery('.ui-selected', this);
-            if ($selected.length > 1) {
-                $selected.not(':last').removeClass('ui-selected');
-            }
+    jQuery("#interestingFilter").addClass('ui-selectable');
+    jQuery("#interestingFilter li").on("click", function () {
+        var $this = jQuery(this);
+        var wasSelected = $this.hasClass('ui-selected');
+        jQuery("#interestingFilter li").removeClass('ui-selected');
+        if (!wasSelected) {
+            $this.addClass('ui-selected');
         }
-    });
-    jQuery("#interestingFilter").on("selectablestart", function (event, ui) {
-        event.originalEvent.ctrlKey = true;
+        updateInterestingFilter();
     });
 }
 
@@ -9479,6 +9475,13 @@ function fetchCloseCallsData(thenZoom) {
             closeCallsMap = {};
             (data.events || []).forEach(function(e) {
                 closeCallsMap[e.hex] = e;
+                // Include the threat aircraft too — a close call is between two
+                // planes and both should pass the filter when they're flying.
+                // For single-sided RAs the threat won't have its own event row,
+                // so seed a minimal entry keyed by its hex.
+                if (e.threat_hex && !closeCallsMap[e.threat_hex]) {
+                    closeCallsMap[e.threat_hex] = { hex: e.threat_hex };
+                }
             });
             if (PlaneFilter.closeCalls) refreshFilter();
             if (thenZoom) zoomToInterestingFlights(closeCallsMap);
@@ -9533,7 +9536,7 @@ function zoomToInterestingFlights(hexMap) {
         var buffer = 150000;
         OLMap.getView().fit(
             [minX - buffer, minY - buffer, maxX + buffer, maxY + buffer],
-            { padding: [80, 80, 80, 80], duration: 500 }
+            { padding: [80, 80, 80, 80], duration: 0 }
         );
     }
 }
@@ -9543,6 +9546,34 @@ function updateInterestingFilter(e) {
 
     var wantCloseCalls = enableCloseCalls && jQuery('#interesting-close-calls').hasClass('ui-selected');
     var wantMostWatched = enableMostWatchedFilter && jQuery('#interesting-most-watched').hasClass('ui-selected');
+
+    if (wantCloseCalls || wantMostWatched) {
+        // Clear filter state in-place WITHOUT calling each reset function — those
+        // each trigger refreshFilter() (O(aircraft)) and cascade. The async fetch
+        // handler will do a single refreshFilter() once new data arrives.
+        jQuery("#altitude_filter_min").val("");
+        jQuery("#altitude_filter_max").val("");
+        PlaneFilter.enabled = false;
+        PlaneFilter.minAltitude = undefined;
+        PlaneFilter.maxAltitude = undefined;
+
+        jQuery('#sourceFilter .ui-selected').removeClass('ui-selected');
+        sourcesFilter = null;
+        PlaneFilter.sources = null;
+
+        jQuery('#flagFilter .ui-selected').removeClass('ui-selected');
+        flagFilter = null;
+        PlaneFilter.flagFilter = null;
+
+        icaoFilter = null;
+
+        for (const f of filters_active) {
+            f.input.val("");
+            f.pattern = "";
+            f.PATTERN = "";
+        }
+        filters_active.length = 0;
+    }
 
     PlaneFilter.closeCalls = wantCloseCalls;
     PlaneFilter.mostWatched = wantMostWatched;
@@ -9560,7 +9591,12 @@ function updateInterestingFilter(e) {
         mostWatchedMap = {};
     }
 
-    refreshFilter();
+    // Only refresh now if we're NOT about to fetch — otherwise the fetch handler
+    // will refresh with fresh data, and refreshing here just causes a visible
+    // flash where everything hides (empty map) before re-appearing.
+    if (!wantCloseCalls && !wantMostWatched) {
+        refreshFilter();
+    }
     updateAddressBar();
 }
 

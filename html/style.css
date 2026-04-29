@@ -932,6 +932,7 @@ table.infoSectionTable tr td {
 
 .buttonFilter li {
     border-width: 2px;
+    border-style: solid;
     border-color: var(--BGCOLOR2);
     margin-right: 5px;
     margin-bottom: 5px;
