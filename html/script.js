@@ -41,7 +41,6 @@ let addToIconCache = [];
 let lineStyleCache = {};
 let replayPlanes = {};
 let PlaneFilter   = {};
-let closeCallsMap = {};   // hex -> {rank, date, time, advisory, threat_hex, lat, lon, alt}
 let mostWatchedMap = {};  // hex -> {rank, clicks}
 let SelectedPlane = null;
 let sp = null;
@@ -1164,10 +1163,6 @@ function earlyInitPage() {
         PlaneFilter.flagFilter = usp.get('filterDbFlag').split(',');
         shareFiltersParam = true;
     }
-    if (enableCloseCalls && usp.has('filterCloseCalls')) {
-        PlaneFilter.closeCalls = true;
-        shareFiltersParam = true;
-    }
     if (enableMostWatchedFilter && usp.has('filterMostWatched')) {
         PlaneFilter.mostWatched = true;
         shareFiltersParam = true;
@@ -1929,23 +1924,17 @@ function initInterestingFilter(colors) {
     };
 
     let html = '';
-    if (enableCloseCalls) {
-        html += createFilter(colors['tisb'], 'Close Calls', 'close-calls', 'Show only aircraft with recent TCAS alerts');
-    }
     if (enableMostWatchedFilter) {
         html += createFilter(colors['adsb'], 'Most Watched', 'most-watched', 'Show only the most-clicked aircraft in the last 5 minutes');
     }
     document.getElementById('interestingFilter').innerHTML = html;
 
-    if (!enableCloseCalls && !enableMostWatchedFilter) {
+    if (!enableMostWatchedFilter) {
         jQuery('#interesting_filter_row').hide();
         return;
     }
 
     // Restore selection from URL state
-    if (enableCloseCalls && PlaneFilter.closeCalls) {
-        jQuery('#interesting-close-calls').addClass('ui-selected');
-    }
     if (enableMostWatchedFilter && PlaneFilter.mostWatched) {
         jQuery('#interesting-most-watched').addClass('ui-selected');
     }
@@ -6631,9 +6620,6 @@ function updateAddressBar() {
         if (PlaneFilter.flagFilter) {
             filterStrings.push('filterDbFlag=' + PlaneFilter.flagFilter.map(f => encodeURIComponent(f)).join(','));
         }
-        if (enableCloseCalls && PlaneFilter.closeCalls) {
-            filterStrings.push('filterCloseCalls=enabled');
-        }
         if (enableMostWatchedFilter && PlaneFilter.mostWatched) {
             filterStrings.push('filterMostWatched=enabled');
         }
@@ -9472,20 +9458,6 @@ initialize();
 
 // ---- Interesting Flights (AX-750) ----
 
-function fetchCloseCallsData(thenZoom) {
-    fetch(interestingFlightsApiUrl + '/close-calls')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            closeCallsMap = {};
-            (data.events || []).forEach(function(e) {
-                closeCallsMap[e.hex] = e;
-            });
-            if (PlaneFilter.closeCalls) refreshFilter();
-            if (thenZoom) zoomToInterestingFlights(closeCallsMap);
-        })
-        .catch(function(e) { console.warn('close-calls fetch failed', e); });
-}
-
 function fetchMostWatchedData(thenZoom) {
     fetch(interestingFlightsApiUrl + '/most-watched')
         .then(function(r) { return r.json(); })
@@ -9541,18 +9513,10 @@ function zoomToInterestingFlights(hexMap) {
 function updateInterestingFilter(e) {
     if (e) e.preventDefault();
 
-    var wantCloseCalls = enableCloseCalls && jQuery('#interesting-close-calls').hasClass('ui-selected');
     var wantMostWatched = enableMostWatchedFilter && jQuery('#interesting-most-watched').hasClass('ui-selected');
 
-    PlaneFilter.closeCalls = wantCloseCalls;
     PlaneFilter.mostWatched = wantMostWatched;
 
-    if (wantCloseCalls) {
-        deselectAllPlanes();
-        fetchCloseCallsData(true);
-    } else {
-        closeCallsMap = {};
-    }
     if (wantMostWatched) {
         deselectAllPlanes();
         fetchMostWatchedData(true);
@@ -9567,9 +9531,7 @@ function updateInterestingFilter(e) {
 function onResetInterestingFilter(e) {
     if (e) e.preventDefault();
     jQuery('#interestingFilter .ui-selected').removeClass('ui-selected');
-    PlaneFilter.closeCalls = false;
     PlaneFilter.mostWatched = false;
-    closeCallsMap = {};
     mostWatchedMap = {};
     refreshFilter();
     updateAddressBar();
@@ -9577,9 +9539,6 @@ function onResetInterestingFilter(e) {
 
 // Auto-fetch on load if URL params activated these filters.
 // The ui-selected class is applied by initInterestingFilter once the <li>s exist.
-if (enableCloseCalls && PlaneFilter.closeCalls) {
-    fetchCloseCallsData(true);
-}
 if (enableMostWatchedFilter && PlaneFilter.mostWatched) {
     fetchMostWatchedData(true);
 }

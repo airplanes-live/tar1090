@@ -477,7 +477,6 @@ let MergeNonIcao = false; // set to true to merge non icao hex with the icao hex
 
 let enableUAV = false;
 
-let enableCloseCalls = false;
 let enableMostWatchedFilter = false;
 let enableMostWatchedClickTracking = false;
 let enableActiveDates = false;
