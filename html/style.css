@@ -640,6 +640,39 @@ select.error, textarea.error, input.error {
     background-image: url('images/replay-black.svg');
 }
 
+.settingsMostWatched {
+    background-color: var(--ACCENT);
+    width: calc( 27px * var(--SCALE));
+    height: calc( 27px * var(--SCALE));
+    cursor: pointer;
+    background-image: url('images/icon-eye-white.svg');
+    background-size: 70%;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin: calc( 5px * var(--SCALE));
+    border-radius: calc( 2px * var(--SCALE));
+    display: flex;
+}
+
+.settingsMostWatched-active {
+    background-image: url('images/icon-eye-black.svg');
+}
+
+.button-badge-new {
+    width: calc( 34px * var(--SCALE));
+    height: calc( 34px * var(--SCALE));
+    cursor: pointer;
+    background-image: url('images/button-badge-new.svg');
+    background-size: 2.5em;
+    background-position-x: left;
+    background-position-y: bottom;
+    background-repeat: no-repeat;
+    display: flex;
+    margin-left: -1em;
+    margin-top: 0.5em;
+    pointer-events: none;
+}
+
 /* .settingsCog {
     width: calc( 48px * var(--SCALE));
     height: calc( 48px * var(--SCALE));

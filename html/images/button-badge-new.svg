@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27 14">
+  <defs>
+    <style>
+      .cls-2 {
+        fill: #15803d;
+        stroke-width: 0px;
+      }
+
+      .cls-3 {
+        fill: #fff;
+        font-family: HelveticaNeue-Bold, 'Helvetica Neue';
+        font-size: 8px;
+        font-weight: 700;
+      }
+    </style>
+  </defs>
+  <rect class="cls-2" y="0" width="27" height="14" rx="5.14" ry="5.14"/>
+  <text class="cls-3" transform="translate(4.17 9.5)"><tspan x="0" y="0">NEW</tspan></text>
+</svg>

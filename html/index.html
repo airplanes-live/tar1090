@@ -972,6 +972,9 @@
             <div class="buttonSpacer">
             </div>
             <div id="RP" title="Replay" class="settingsReplay" onclick="showReplayBar();"></div>
+            <div id="MW" title="Most Watched" class="settingsMostWatched" onclick="toggleMostWatched();" style="display: none;">
+              <div class="button-badge-new"></div>
+            </div>
           </div>
         </div>
         <div id="altitude_chart" class="ol-unselectable ol-control altitudeFeet">
@@ -1180,22 +1183,6 @@
                       </td>
                     </tr>
 
-                    <tr id="interesting_filter_row">
-                      <td>
-                        <form id="interesting_filter_form">
-                          <div class="infoBlockTitleText">Filter by interesting:</div>
-                          <table>
-                            <tr><td>
-                              <ol id="interestingFilter" class="buttonFilter"></ol>
-                            </td></tr>
-                            <tr><td>
-                              <button class="formButton" type="submit">Filter</button>
-                              <button class="formButton" id="interesting_filter_reset_button">Reset</button>
-                            </td></tr>
-                          </table>
-                        </form>
-                      </td>
-                    </tr>
                   </tbody>
                 </table>
                 <table cellpadding="0" cellspacing="0" id="filterTable3">
