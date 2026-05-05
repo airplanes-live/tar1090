@@ -1245,10 +1245,12 @@ function earlyInitPage() {
     jQuery("#altitude_filter_form").submit(onFilterByAltitude);
     jQuery("#source_filter_form").submit(updateSourceFilter);
     jQuery("#flag_filter_form").submit(updateFlagFilter);
+    jQuery("#interesting_filter_form").submit(updateInterestingFilter);
 
     jQuery("#altitude_filter_reset_button").click(onResetAltitudeFilter);
     jQuery("#source_filter_reset_button").click(onResetSourceFilter);
     jQuery("#flag_filter_reset_button").click(onResetFlagFilter);
+    jQuery("#interesting_filter_reset_button").click(onResetInterestingFilter);
 
     // Initialize other controls
     jQuery("#search_form").submit(onSearch);
@@ -1916,16 +1918,49 @@ function initFlagFilter(colors) {
     });
 }
 
-function initInterestingFilter() {
-    // The "Most Watched" filter is now a single mutually-exclusive button on
-    // the globe (see #MW). Reveal the button when the feature flag is on, and
-    // sync the .active state to whatever is in PlaneFilter (set from the URL).
-    if (!enableMostWatchedFilter) return;
+function initInterestingFilter(colors) {
+    // Most Watched has two surfaces that converge on the same state:
+    //   - Globe button #MW  (eye icon under Replay)
+    //   - Filter panel <ol id="interestingFilter">  (this function renders it)
+    // Both routes call toggleMostWatched / deactivateMostWatched so the mutex
+    // and fetch-first behavior stay identical.
+    const createFilter = function (color, text, key, title) {
+        return '<li class="ui-widget-content" style="background-color:' + color + ';" id="interesting-' + key + '" title="' + title + '">' + text + '</li>';
+    };
 
+    let html = '';
+    if (enableMostWatchedFilter) {
+        html += createFilter(colors['adsb'], 'Most Watched', 'most-watched', 'Show only the most-clicked aircraft in the last 5 minutes');
+    }
+    document.getElementById('interestingFilter').innerHTML = html;
+
+    if (!enableMostWatchedFilter) {
+        jQuery('#interesting_filter_row').hide();
+        return;
+    }
+
+    // Reveal the globe button and sync both surfaces to current state.
     const btn = document.getElementById('MW');
-    if (!btn) return;
-    btn.style.display = '';
-    btn.classList.toggle('settingsMostWatched-active', !!PlaneFilter.mostWatched);
+    if (btn) {
+        btn.style.display = '';
+        btn.classList.toggle('settingsMostWatched-active', !!PlaneFilter.mostWatched);
+    }
+    if (PlaneFilter.mostWatched) {
+        jQuery('#interesting-most-watched').addClass('ui-selected');
+    }
+
+    jQuery("#interestingFilter").selectable({
+        stop: function () {
+            // Enforce single-select.
+            var $selected = jQuery('.ui-selected', this);
+            if ($selected.length > 1) {
+                $selected.not(':last').removeClass('ui-selected');
+            }
+        }
+    });
+    jQuery("#interestingFilter").on("selectablestart", function (event, ui) {
+        event.originalEvent.ctrlKey = true;
+    });
 }
 
 function push_history() {
@@ -9556,6 +9591,7 @@ function deactivateMostWatched() {
     mostWatchedMap = {};
     const btn = document.getElementById('MW');
     if (btn) btn.classList.remove('settingsMostWatched-active');
+    jQuery('#interesting-most-watched').removeClass('ui-selected');
     updateAddressBar();
 }
 
@@ -9583,12 +9619,37 @@ function toggleMostWatched() {
             clearAllPlaneFilters();
             PlaneFilter.mostWatched = true;
             if (btn) btn.classList.add('settingsMostWatched-active');
+            jQuery('#interesting-most-watched').addClass('ui-selected');
             deselectAllPlanes();
             refreshFilter();
             zoomToInterestingFlights(mostWatchedMap);
             updateAddressBar();
         })
         .catch(function (e) { console.warn('most-watched fetch failed', e); });
+}
+
+// Filter-panel surface: the user picks "Most Watched" in the <ol> and clicks
+// Filter (or unticks it and clicks Filter to deactivate). Routed through the
+// same toggleMostWatched / deactivateMostWatched helpers as the globe button
+// so both surfaces always agree on state.
+function updateInterestingFilter(e) {
+    if (e) e.preventDefault();
+    const wantsActive = enableMostWatchedFilter && jQuery('#interesting-most-watched').hasClass('ui-selected');
+    if (wantsActive && !PlaneFilter.mostWatched) {
+        toggleMostWatched();
+    } else if (!wantsActive && PlaneFilter.mostWatched) {
+        deactivateMostWatched();
+        refreshFilter();
+    }
+}
+
+function onResetInterestingFilter(e) {
+    if (e) e.preventDefault();
+    jQuery('#interestingFilter .ui-selected').removeClass('ui-selected');
+    if (PlaneFilter.mostWatched) {
+        deactivateMostWatched();
+        refreshFilter();
+    }
 }
 
 // Auto-fetch on load if the URL activated this filter.
