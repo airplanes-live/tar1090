@@ -3982,6 +3982,15 @@ function refreshHighlighted() {
         jQuery('#highlighted_registration').text("n/a");
     }
 
+    if (highlighted.operatorIcao) {
+        const airlineName = (g.airline_names && g.airline_names[highlighted.operatorIcao])
+            || highlighted.ownOp
+            || highlighted.operatorIcao;
+        jQuery('#highlighted_airline').text(airlineName);
+    } else {
+        jQuery('#highlighted_airline').text("n/a");
+    }
+
     jQuery('#highlighted_speed').text(format_speed_long(highlighted.gs, DisplayUnits));
 
     jQuery("#highlighted_altitude").text(format_altitude_long(adjust_baro_alt(highlighted.altitude), highlighted.vert_rate, DisplayUnits));
