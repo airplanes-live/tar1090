@@ -485,11 +485,44 @@ function db_load_type_cache() {
 function db_load_airline_names() {
     if (g.airline_names !== undefined) return;
     g.airline_names = null; // loading in progress
-    jQuery.getJSON('airlines/airlines.json').done(function(data) {
-        g.airline_names = data;
+
+    function normalizeOperatorNames(data) {
+        const names = {};
+        if (!data || typeof data !== 'object') {
+            return names;
+        }
+
+        for (const code in data) {
+            const entry = data[code];
+            let name = null;
+
+            if (typeof entry === 'string') {
+                name = entry;
+            } else if (Array.isArray(entry)) {
+                name = entry[0];
+            } else if (entry && typeof entry === 'object') {
+                name = entry.n || entry.name || entry[0];
+            }
+
+            if (typeof name === 'string' && name.length) {
+                names[code.toUpperCase()] = name;
+            }
+        }
+
+        return names;
+    }
+
+    jQuery.getJSON(databaseFolder + '/operators.js').done(function(data) {
+        g.airline_names = normalizeOperatorNames(data);
     }).fail(function() {
-        g.airline_names = {}; // failed empty map fallback to code
-        console.warn('airlines/airlines.json not found, airline names unavailable');
+        // Fallback for setups that don't ship operators.js in the selected database folder.
+        jQuery.getJSON('airlines/airlines.json').done(function(data) {
+            g.airline_names = normalizeOperatorNames(data);
+            console.warn('using airlines/airlines.json fallback; database operators.js unavailable');
+        }).fail(function() {
+            g.airline_names = {}; // failed empty map fallback to code
+            console.warn('operator names unavailable (db operators.js and airlines/airlines.json failed)');
+        });
     });
 }
 
@@ -3555,7 +3588,7 @@ function refreshSelected() {
         }
     }
     if (selected.operatorIcao) {
-        // Priority: CSV airline DB (by callsign) > aircraft DB ownOp > bare ICAO code
+        // Priority: operators DB (by callsign) > aircraft DB ownOp > bare ICAO code
         const airlineName = (g.airline_names && g.airline_names[selected.operatorIcao])
             || selected.ownOp
             || selected.operatorIcao;
