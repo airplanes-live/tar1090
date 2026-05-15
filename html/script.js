@@ -3588,7 +3588,6 @@ function refreshSelected() {
         }
     }
     if (selected.operatorIcao) {
-        // Priority: operators DB (by callsign) > aircraft DB ownOp > bare ICAO code
         const airlineName = (g.airline_names && g.airline_names[selected.operatorIcao])
             || selected.ownOp
             || selected.operatorIcao;
