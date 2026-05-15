@@ -3740,6 +3740,11 @@ function refreshSelected() {
     }
 
     jQuery('#selected_country').updateText(selected.country.replace("special use", "special"));
+    if (selected.country_code) {
+        jQuery('#selected_reg_flag').attr('src', 'flags/3x2/' + selected.country_code.toUpperCase() + '.svg').attr('title', selected.country).show();
+    } else {
+        jQuery('#selected_reg_flag').hide();
+    }
 
     if (selected.position == null) {
         jQuery('#selected_position').updateText('n/a');
