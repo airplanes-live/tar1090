@@ -3476,6 +3476,29 @@ function refreshSelected() {
 
     jQuery('#selected_callsign').updateText(selected.name);
 
+    let operatorIcao = selected.operatorIcao;
+    let selectedOperatorIcon = jQuery('#selected_operator_icon');
+    let operatorIconImage = selectedOperatorIcon.find('img');
+    let selectedAirlineBanner = jQuery('#selected_airline_banner');
+    let airlineBannerImage = selectedAirlineBanner.find('img');
+
+    if (operatorIcao) {
+        let src = `airline_banners/${operatorIcao}.png`;
+        if (airlineBannerImage.length === 0) {
+            selectedAirlineBanner.append(`<img src="${src}" onerror="this.style.display='none'" onload="this.style.display=''";"/>`);
+        } else {
+            if (airlineBannerImage.attr('src') != src) {
+                airlineBannerImage.attr('src', src);
+                airlineBannerImage.style = {};
+                airlineBannerImage.style.display = '';
+            }
+        }
+    } else {
+        if (airlineBannerImage.length >= 1) {
+            airlineBannerImage.first().remove();
+        }
+    }
+
     if (showTrace) {
         if (selected.position_time) {
             const date = new Date(selected.position_time * 1000);

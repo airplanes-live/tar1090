@@ -831,6 +831,20 @@ table.infoSectionTable tr td {
   text-align: center;
   display: block;
 }
+
+#selected_airline_banner {
+    text-align: center;
+    display: block;
+}
+
+#selected_airline_banner img {
+    max-width: 100%;
+    max-height: 50px;
+    background: #fff;
+    border-radius: 2px;
+    padding: 2px;
+}
+
 .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default, .ui-button, html .ui-button.ui-state-disabled:hover, html .ui-button.ui-state-disabled:active {
   background: var(--BGCOLOR1);
   border: none;

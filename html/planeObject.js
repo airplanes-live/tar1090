@@ -3086,7 +3086,15 @@ PlaneObject.prototype.setFlight = function(flight) {
         this.flight = `${flight}`;
         this.name = this.flight.trim() || 'empty callsign';
         this.flightTs = now;
+
+        this.operatorIcao = this.getOperatorIcao(this.name);
     }
+}
+
+PlaneObject.prototype.getOperatorIcao = function(callsign) {
+    if (!callsign || callsign.trim() === '') return null;
+    if (!/^[A-Z]{3}/.test(callsign) || isNaN(parseInt(callsign[3], 10))) return null;
+    return callsign.substring(0, 3)
 }
 
 function normalizeTraceStamps(data) {
