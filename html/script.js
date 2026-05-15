@@ -515,14 +515,8 @@ function db_load_airline_names() {
     jQuery.getJSON(databaseFolder + '/operators.js').done(function(data) {
         g.airline_names = normalizeOperatorNames(data);
     }).fail(function() {
-        // Fallback for setups that don't ship operators.js in the selected database folder.
-        jQuery.getJSON('airlines/airlines.json').done(function(data) {
-            g.airline_names = normalizeOperatorNames(data);
-            console.warn('using airlines/airlines.json fallback; database operators.js unavailable');
-        }).fail(function() {
-            g.airline_names = {}; // failed empty map fallback to code
-            console.warn('operator names unavailable (db operators.js and airlines/airlines.json failed)');
-        });
+        g.airline_names = {};
+        console.warn('operator names unavailable (db operators.js failed)');
     });
 }
 
