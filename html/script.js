@@ -482,6 +482,17 @@ function db_load_type_cache() {
     });
 }
 
+function db_load_airline_names() {
+    if (g.airline_names !== undefined) return;
+    g.airline_names = null; // loading in progress
+    jQuery.getJSON('airlines/airlines.json').done(function(data) {
+        g.airline_names = data;
+    }).fail(function() {
+        g.airline_names = {}; // failed empty map fallback to code
+        console.warn('airlines/airlines.json not found, airline names unavailable');
+    });
+}
+
 g.afterLoadDone = false;
 g.afterLoad = [];
 function runAfterLoad(func) {
@@ -519,6 +530,7 @@ function afterFirstFetch() {
         db_load_type_cache().always(function() {
             refresh();
         });
+        db_load_airline_names();
 
         if (usp.has('screenshot')) {
             clearIntervalTimers('silent');
@@ -3542,6 +3554,17 @@ function refreshSelected() {
             jQuery('#selected_registration').updateText("n/a");
         }
     }
+    if (selected.operatorIcao) {
+        // Priority: CSV airline DB (by callsign) > aircraft DB ownOp > bare ICAO code
+        const airlineName = (g.airline_names && g.airline_names[selected.operatorIcao])
+            || selected.ownOp
+            || selected.operatorIcao;
+        jQuery('#selected_airline').updateText(airlineName);
+        jQuery('#airline_row').removeClass('hidden');
+    } else {
+        jQuery('#airline_row').addClass('hidden');
+    }
+
     let dbFlags = "";
     if (selected.ladd)
         dbFlags += ' <a class="link" target="_blank" href="https://www.faa.gov/pilots/ladd/" rel="noreferrer">LADD</a> / ';
