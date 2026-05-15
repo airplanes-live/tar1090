@@ -3986,9 +3986,9 @@ function refreshHighlighted() {
         const airlineName = (g.airline_names && g.airline_names[highlighted.operatorIcao])
             || highlighted.ownOp
             || highlighted.operatorIcao;
-        jQuery('#highlighted_airline').text(airlineName);
+        jQuery('#highlighted_airline').text(airlineName).attr('title', airlineName);
     } else {
-        jQuery('#highlighted_airline').text("n/a");
+        jQuery('#highlighted_airline').text("n/a").attr('title', '');
     }
 
     jQuery('#highlighted_speed').text(format_speed_long(highlighted.gs, DisplayUnits));
