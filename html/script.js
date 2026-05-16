@@ -512,11 +512,11 @@ function db_load_airline_names() {
         return names;
     }
 
-    jQuery.getJSON(databaseFolder + '/operators.js').done(function(data) {
+    jQuery.getJSON(databaseFolder + '/operators.json').done(function(data) {
         g.airline_names = normalizeOperatorNames(data);
     }).fail(function() {
         g.airline_names = {};
-        console.warn('operator names unavailable (db operators.js failed)');
+        console.warn('operator names unavailable (db operators.json failed)');
     });
 }
 
@@ -3583,8 +3583,7 @@ function refreshSelected() {
     }
     if (selected.operatorIcao) {
         const airlineName = (g.airline_names && g.airline_names[selected.operatorIcao])
-            || selected.ownOp
-            || selected.operatorIcao;
+            || selected.ownOp;
         jQuery('#selected_airline').updateText(airlineName);
         jQuery('#airline_row').removeClass('hidden');
     } else {
@@ -3984,8 +3983,7 @@ function refreshHighlighted() {
 
     if (highlighted.operatorIcao) {
         const airlineName = (g.airline_names && g.airline_names[highlighted.operatorIcao])
-            || highlighted.ownOp
-            || highlighted.operatorIcao;
+            || highlighted.ownOp;
         jQuery('#highlighted_airline').text(airlineName).attr('title', airlineName);
     } else {
         jQuery('#highlighted_airline').text("n/a").attr('title', '');
