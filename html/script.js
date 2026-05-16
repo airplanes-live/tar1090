@@ -3581,8 +3581,9 @@ function refreshSelected() {
             jQuery('#selected_registration').updateText("n/a");
         }
     }
-    const airlineName = selected.ownOp
-        || (g.airline_names && g.airline_names[selected.operatorIcao]);
+    const airlineName = selected.operatorIcao
+        && g.airline_names
+        && g.airline_names[selected.operatorIcao];
     if (airlineName) {
         jQuery('#selected_airline').updateText(airlineName);
         jQuery('#airline_row').removeClass('hidden');
@@ -3981,9 +3982,10 @@ function refreshHighlighted() {
         jQuery('#highlighted_registration').text("n/a");
     }
 
-    if (highlighted.operatorIcao) {
-        const airlineName = highlighted.ownOp
-            || (g.airline_names && g.airline_names[highlighted.operatorIcao]);
+    const airlineName = highlighted.operatorIcao
+        && g.airline_names
+        && g.airline_names[highlighted.operatorIcao];
+    if (airlineName) {
         jQuery('#highlighted_airline').text(airlineName).attr('title', airlineName);
     } else {
         jQuery('#highlighted_airline').text("n/a").attr('title', '');
