@@ -3581,9 +3581,9 @@ function refreshSelected() {
             jQuery('#selected_registration').updateText("n/a");
         }
     }
-    if (selected.operatorIcao) {
-        const airlineName = selected.ownOp
-            || (g.airline_names && g.airline_names[selected.operatorIcao]);
+    const airlineName = selected.ownOp
+        || (g.airline_names && g.airline_names[selected.operatorIcao]);
+    if (airlineName) {
         jQuery('#selected_airline').updateText(airlineName);
         jQuery('#airline_row').removeClass('hidden');
     } else {
