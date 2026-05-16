@@ -3582,8 +3582,8 @@ function refreshSelected() {
         }
     }
     if (selected.operatorIcao) {
-        const airlineName = (g.airline_names && g.airline_names[selected.operatorIcao])
-            || selected.ownOp;
+        const airlineName = selected.ownOp
+            || (g.airline_names && g.airline_names[selected.operatorIcao]);
         jQuery('#selected_airline').updateText(airlineName);
         jQuery('#airline_row').removeClass('hidden');
     } else {
@@ -3982,8 +3982,8 @@ function refreshHighlighted() {
     }
 
     if (highlighted.operatorIcao) {
-        const airlineName = (g.airline_names && g.airline_names[highlighted.operatorIcao])
-            || highlighted.ownOp;
+        const airlineName = highlighted.ownOp
+            || (g.airline_names && g.airline_names[highlighted.operatorIcao]);
         jQuery('#highlighted_airline').text(airlineName).attr('title', airlineName);
     } else {
         jQuery('#highlighted_airline').text("n/a").attr('title', '');
