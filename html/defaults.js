@@ -359,7 +359,6 @@ let debugRoute = false; // bunch of debugging console output for route api
 let jetphotoLinks = false;
 
 let showSil = false;
-// this shows small pictures in the details but they need to be provided by the user in the folder /usr/local/share/tar1090/aircraft_sil
 // showPictures needs to be enabled as well
 // to only get these pictures disable the planespottersAPI
 // pictures need to be named A330.png and so forth with the type code in the form TYPE.png
