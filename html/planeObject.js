@@ -249,7 +249,7 @@ PlaneObject.prototype.isFiltered = function() {
     if (this.selected)
         return false;
 
-    if (enableMostWatchedFilter && PlaneFilter.mostWatched && Object.keys(mostWatchedMap).length > 0 && !mostWatchedMap[this.icao]) {
+    if (enableMostWatchedFilter && PlaneFilter.mostWatched && !mostWatchedMap[this.icao]) {
         return true;
     }
 
