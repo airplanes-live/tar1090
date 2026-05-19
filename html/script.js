@@ -3375,7 +3375,7 @@ function displaySil() {
     let new_html="";
     let type = selected.icaoType ? selected.icaoType : 'ZZZZ';
     let hex = selected.icao.toUpperCase();
-    new_html = "<img id='silhouette' width='"+ 151 * globalScale + "' src='aircraft_sil/" + type + ".png' />";
+    new_html = "<img id='silhouette' width='"+ 151 * globalScale + "' src='https://static.airplanes.live/aircraft_sil/" + type + ".png' />";
     setPhotoHtml(new_html);
     selected.icao.toUpperCase();
 }
@@ -3522,7 +3522,7 @@ function refreshSelected() {
     let airlineBannerImage = selectedAirlineBanner.find('img');
 
     if (operatorIcao) {
-        let src = `airline_banners/${operatorIcao}.png`;
+        let src = `https://static.airplanes.live/airline_banners/${operatorIcao}.png`;
         if (airlineBannerImage.length === 0) {
             selectedAirlineBanner.append(`<img src="${src}" onerror="this.style.display='none'" onload="this.style.display=''";"/>`);
         } else {
