@@ -480,4 +480,4 @@ let enableUAV = false;
 let enableMostWatchedFilter = false;
 let enableMostWatchedClickTracking = false;
 let enableActiveDates = false;
-let interestingFlightsApiUrl = '';
+let globeDataBaseUrl = '';

@@ -1279,9 +1279,8 @@ function earlyInitPage() {
         },
         beforeShow: function(input, inst){
             var icao = SelectedPlane ? SelectedPlane.icao : null;
-            if (enableActiveDates && icao && ActivityHistory.hasFetched(icao) && !ActivityHistory.hasActivity(icao)) {
-                return false;
-            }
+            // Don't block the datepicker for empty-dates ICAOs — pre-2022-only aircraft
+            // return [] but still have globe history; user should be able to free-step.
             if (onMobile) {
                 jQuery("#histDatePicker").attr("disabled", true);
             }
@@ -1292,8 +1291,14 @@ function earlyInitPage() {
             var todayStr = ActivityHistory.toDateStr(new Date());
             var dateStr = ActivityHistory.toDateStr(date);
             if (dateStr === todayStr) return [true, '', ''];
+            var dates = ActivityHistory.datesByIcao[icao];
+            // Empty dates array — pre-2022-only aircraft; all days navigable, no highlights.
+            if (!dates || !dates.length) return [true, '', ''];
             var activeSet = ActivityHistory.getActiveDatesSet(icao);
             if (activeSet[dateStr]) return [true, 'hist-active-date', ''];
+            // Before the oldest known active date — no dataset coverage, but globe history
+            // may exist; leave enabled so the user can free-step into that era.
+            if (dateStr < dates[dates.length - 1]) return [true, '', ''];
             return [false, '', 'No activity'];
         },
         onChangeMonthYear: function(year, month) {
@@ -4703,7 +4708,7 @@ function selectPlaneByHex(hex, options) {
         if (clickPlane && clickPlane.position) {
             clickBody += ',' + clickPlane.position[0].toFixed(1) + ',' + clickPlane.position[1].toFixed(1);
         }
-        navigator.sendBeacon(interestingFlightsApiUrl + '/click', clickBody);
+        navigator.sendBeacon(globeDataBaseUrl + '/click', clickBody);
     }
     // plane to be selected
     let newPlane = g.planes[hex];
@@ -6808,8 +6813,10 @@ async function toggleShowTrace() {
                 jQuery("#histDatePicker").datepicker("refresh");
                 var currentDateStr = traceDateString || (traceDate ? traceDate.toISOString().split('T')[0] : null);
                 var todayStr = ActivityHistory.toDateStr(new Date());
-                if (!ActivityHistory.hasActivity(icao) && currentDateStr && currentDateStr < todayStr) {
-                    // No history and viewing a past date — show no-history state
+                if (ActivityHistory.hasFetched(icao) && !ActivityHistory.hasActivity(icao) && currentDateStr && currentDateStr < todayStr) {
+                    // Successful fetch returned empty → genuine "no history" state.
+                    // On fetch error nothing is cached, so hasFetched is false here and
+                    // we fall through to the free-stepping fallback instead of mislabelling an outage.
                     jQuery('#trace_no_data').show();
                     jQuery('#trace_panel_content').hide();
                 } else {
@@ -7046,13 +7053,24 @@ async function shiftTrace(offset) {
 function updateHistoryNavButtons() {
     if (!enableActiveDates) return;
     const icao = SelectedPlane ? SelectedPlane.icao : null;
-    if (!icao || !ActivityHistory.hasFetched(icao)) return;
+    if (!icao) return;
 
-    // Fetched but no activity — disable both buttons and datepicker
+    // No cached dates for this ICAO — either not fetched yet, or the fetch errored.
+    // Either way, fall back to pre-AX-744 free-stepping nav (buttons + datepicker enabled).
+    // Without this, buttons could stay disabled from a previous aircraft's "no activity" state.
+    if (!ActivityHistory.hasFetched(icao)) {
+        jQuery('#trace_back_1d').prop('disabled', false);
+        jQuery('#trace_jump_1d').prop('disabled', false);
+        jQuery('#histDatePicker').datepicker('enable');
+        return;
+    }
+
+    // Fetched but empty dates — plane may have only flown pre-2022 (before dataset
+    // coverage). Fall back to free-stepping so the user can still navigate history.
     if (!ActivityHistory.hasActivity(icao)) {
-        jQuery('#trace_back_1d').prop('disabled', true);
-        jQuery('#trace_jump_1d').prop('disabled', true);
-        jQuery('#histDatePicker').datepicker('disable');
+        jQuery('#trace_back_1d').prop('disabled', false);
+        jQuery('#trace_jump_1d').prop('disabled', false);
+        jQuery('#histDatePicker').datepicker('enable');
         return;
     }
 
@@ -9485,9 +9503,9 @@ initialize();
 // Used only by the URL auto-restore path (?filterMostWatched=enabled).
 // On empty/error, silently fall back to unfiltered.
 function fetchMostWatchedData(thenZoom) {
-    fetch(interestingFlightsApiUrl + '/most-watched')
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
+    fetch(globeDataBaseUrl + '/most-watched')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             const aircraft = (data && data.aircraft) || [];
             if (aircraft.length === 0) {
                 deactivateMostWatched();
@@ -9607,7 +9625,7 @@ function toggleMostWatched() {
     // Activate path: fetch first, only commit if data came back. Empty
     // result or network error leaves the page exactly as it was.
     const btn = document.getElementById('MW');
-    fetch(interestingFlightsApiUrl + '/most-watched')
+    fetch(globeDataBaseUrl + '/most-watched')
         .then(function (r) { return r.json(); })
         .then(function (data) {
             const aircraft = (data && data.aircraft) || [];
