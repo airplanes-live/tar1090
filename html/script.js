@@ -1286,10 +1286,15 @@ function earlyInitPage() {
             }
         },
         beforeShowDay: function(date) {
-            var icao = SelectedPlane ? SelectedPlane.icao : null;
+            var icao = activeDatesIcao();
             if (!enableActiveDates || !icao || !ActivityHistory.hasFetched(icao)) return [true, '', ''];
             var todayStr = ActivityHistory.toDateStr(new Date());
-            var dateStr = ActivityHistory.toDateStr(date);
+            // Format the cell with the datepicker's OWN formatter — the exact code
+            // path that produces the onSelect "YYYY-MM-DD" string — so the highlight
+            // key can never drift from the selected-date key. (Reads local getters
+            // internally: the cell is local-midnight and its printed day = the UTC
+            // day it loads. Using UTC getters here rolled it back east of UTC — AX-916 bug 1.)
+            var dateStr = jQuery.datepicker.formatDate('yy-mm-dd', date);
             if (dateStr === todayStr) return [true, '', ''];
             var dates = ActivityHistory.datesByIcao[icao];
             // Empty dates array — pre-2022-only aircraft; all days navigable, no highlights.
@@ -6795,10 +6800,12 @@ async function toggleShowTrace() {
         jQuery('#show_trace').addClass('active');
 
         const icao = SelectedPlane ? SelectedPlane.icao : null;
+        const adIcao = activeDatesIcao();  // null in multi-select → skip active-dates, free-step (AX-916)
 
         if (icao && !replay) {
-            // Show spinner while fetching active dates
-            if (!enableActiveDates) {
+            // No active-dates lookup when the flag is off OR multiple planes are
+            // selected (adIcao null) — show the panel and free-step day-by-day.
+            if (!enableActiveDates || !adIcao) {
                 jQuery('#trace_panel_loading').hide();
                 jQuery('#trace_panel_content').show();
                 shiftTrace();
@@ -6808,12 +6815,12 @@ async function toggleShowTrace() {
             jQuery('#trace_panel_content').hide();
             jQuery('#trace_no_data').hide();
 
-            ActivityHistory.fetchActiveDates(icao).then(function() {
+            ActivityHistory.fetchActiveDates(adIcao).then(function() {
                 jQuery('#trace_panel_loading').hide();
                 jQuery("#histDatePicker").datepicker("refresh");
                 var currentDateStr = traceDateString || (traceDate ? traceDate.toISOString().split('T')[0] : null);
                 var todayStr = ActivityHistory.toDateStr(new Date());
-                if (ActivityHistory.hasFetched(icao) && !ActivityHistory.hasActivity(icao) && currentDateStr && currentDateStr < todayStr) {
+                if (ActivityHistory.hasFetched(adIcao) && !ActivityHistory.hasActivity(adIcao) && currentDateStr && currentDateStr < todayStr) {
                     // Successful fetch returned empty → genuine "no history" state.
                     // On fetch error nothing is cached, so hasFetched is false here and
                     // we fall through to the free-stepping fallback instead of mislabelling an outage.
@@ -6993,7 +7000,7 @@ async function shiftTrace(offset) {
     traceOpts.showTimeEnd = null;
     traceOpts.showTime = null;
 
-    const icao = SelectedPlane ? SelectedPlane.icao : null;
+    const icao = activeDatesIcao();  // null in multi-select → free-stepping (AX-916)
     let targetDate = null;
 
     // Use activity-aware navigation if we have active dates cached
@@ -7050,24 +7057,26 @@ async function shiftTrace(offset) {
     updateHistoryNavButtons();
 }
 
+// AX-916: intelligent active-date nav is a single-aircraft feature ("when did
+// THIS plane fly"). With more than one plane selected there's no meaningful
+// single answer (and unioning 10+ planes floods the calendar), so return null
+// and let callers fall back to free-stepping nav — no highlights, plain
+// day-by-day stepping. SelPlanes holds every selected plane; single-select
+// keeps exactly one entry.
+function activeDatesIcao() {
+    if (SelPlanes && SelPlanes.length > 1) return null;
+    return SelectedPlane ? SelectedPlane.icao : null;
+}
+
 function updateHistoryNavButtons() {
     if (!enableActiveDates) return;
-    const icao = SelectedPlane ? SelectedPlane.icao : null;
-    if (!icao) return;
+    const icao = activeDatesIcao();
 
-    // No cached dates for this ICAO — either not fetched yet, or the fetch errored.
-    // Either way, fall back to pre-AX-744 free-stepping nav (buttons + datepicker enabled).
-    // Without this, buttons could stay disabled from a previous aircraft's "no activity" state.
-    if (!ActivityHistory.hasFetched(icao)) {
-        jQuery('#trace_back_1d').prop('disabled', false);
-        jQuery('#trace_jump_1d').prop('disabled', false);
-        jQuery('#histDatePicker').datepicker('enable');
-        return;
-    }
-
-    // Fetched but empty dates — plane may have only flown pre-2022 (before dataset
-    // coverage). Fall back to free-stepping so the user can still navigate history.
-    if (!ActivityHistory.hasActivity(icao)) {
+    // Multi-select (icao null), not fetched yet, or a fetch errored (nothing cached),
+    // or fetched-but-empty (pre-2022-only aircraft). In every case fall back to
+    // free-stepping nav (buttons + datepicker enabled). Without this, buttons could
+    // stay disabled from a previous aircraft's "no activity" state.
+    if (!icao || !ActivityHistory.hasFetched(icao) || !ActivityHistory.hasActivity(icao)) {
         jQuery('#trace_back_1d').prop('disabled', false);
         jQuery('#trace_jump_1d').prop('disabled', false);
         jQuery('#histDatePicker').datepicker('enable');
