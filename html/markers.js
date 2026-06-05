@@ -1216,11 +1216,11 @@ let TypeDescriptionIcons = {
 };
 
 let CategoryIcons = {
-    "A1" : ['cessna', 1],// < 7t
+    "A1" : ['unknown', 1],// < 7t
 
-    "A2" : ['jet_swept', 0.94], // < 34t
+    "A2" : ['unknown', 1], // < 34t
 
-    "A3" : ['airliner', 0.96], // < 136t
+    "A3" : ['unknown', 1], // < 136t
 
     "A4" : ['airliner', 1], // < 136t
 
