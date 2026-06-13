@@ -521,7 +521,7 @@ select.error, textarea.error, input.error {
     position: absolute;
     left: calc( 40px * var(--SCALE));
     top: calc( 60px * var(--SCALE));
-    min-width:  calc(132px * var(--SCALE));
+    min-width:  calc(148px * var(--SCALE));
     padding-right: calc( 5px * var(--SCALE));
     box-shadow: calc( 4px * var(--SCALE)) calc( 4px * var(--SCALE)) calc( 10px * var(--SCALE)) #444444;
     cursor: pointer;
@@ -589,6 +589,16 @@ table.infoSectionTable tr td {
     float: right;
     text-align: right;
     display: inline-block;
+}
+
+.selected-country-data {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(4px * var(--SCALE));
+}
+
+#selected_reg_flag {
+    flex-shrink: 0;
 }
 
 .infoBlockSection {
@@ -843,6 +853,15 @@ table.infoSectionTable tr td {
     background: #fff;
     border-radius: 2px;
     padding: 2px;
+}
+
+#highlighted_airline {
+    display: block;
+    max-width: calc(156px * var(--SCALE));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
 }
 
 .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default, .ui-button, html .ui-button.ui-state-disabled:hover, html .ui-button.ui-state-disabled:active {

@@ -482,6 +482,44 @@ function db_load_type_cache() {
     });
 }
 
+function db_load_airline_names() {
+    if (g.airline_names !== undefined) return;
+    g.airline_names = null; // loading in progress
+
+    function normalizeOperatorNames(data) {
+        const names = {};
+        if (!data || typeof data !== 'object') {
+            return names;
+        }
+
+        for (const code in data) {
+            const entry = data[code];
+            let name = null;
+
+            if (typeof entry === 'string') {
+                name = entry;
+            } else if (Array.isArray(entry)) {
+                name = entry[0];
+            } else if (entry && typeof entry === 'object') {
+                name = entry.n || entry.name || entry[0];
+            }
+
+            if (typeof name === 'string' && name.length) {
+                names[code.toUpperCase()] = name;
+            }
+        }
+
+        return names;
+    }
+
+    jQuery.getJSON(databaseFolder + '/operators.json').done(function(data) {
+        g.airline_names = normalizeOperatorNames(data);
+    }).fail(function() {
+        g.airline_names = {};
+        console.warn('operator names unavailable (db operators.json failed)');
+    });
+}
+
 g.afterLoadDone = false;
 g.afterLoad = [];
 function runAfterLoad(func) {
@@ -519,6 +557,7 @@ function afterFirstFetch() {
         db_load_type_cache().always(function() {
             refresh();
         });
+        db_load_airline_names();
 
         if (usp.has('screenshot')) {
             clearIntervalTimers('silent');
@@ -3542,6 +3581,16 @@ function refreshSelected() {
             jQuery('#selected_registration').updateText("n/a");
         }
     }
+    const airlineName = selected.operatorIcao
+        && g.airline_names
+        && g.airline_names[selected.operatorIcao];
+    if (airlineName) {
+        jQuery('#selected_airline').updateText(airlineName);
+        jQuery('#airline_row').removeClass('hidden');
+    } else {
+        jQuery('#airline_row').addClass('hidden');
+    }
+
     let dbFlags = "";
     if (selected.ladd)
         dbFlags += ' <a class="link" target="_blank" href="https://www.faa.gov/pilots/ladd/" rel="noreferrer">LADD</a> / ';
@@ -3717,6 +3766,11 @@ function refreshSelected() {
     }
 
     jQuery('#selected_country').updateText(selected.country.replace("special use", "special"));
+    if (selected.country_code) {
+        jQuery('#selected_reg_flag').attr('src', 'flags/3x2/' + selected.country_code.toUpperCase() + '.svg').attr('title', selected.country).show();
+    } else {
+        jQuery('#selected_reg_flag').hide();
+    }
 
     if (selected.position == null) {
         jQuery('#selected_position').updateText('n/a');
@@ -3926,6 +3980,15 @@ function refreshHighlighted() {
         jQuery('#highlighted_registration').text(highlighted.registration);
     } else {
         jQuery('#highlighted_registration').text("n/a");
+    }
+
+    const airlineName = highlighted.operatorIcao
+        && g.airline_names
+        && g.airline_names[highlighted.operatorIcao];
+    if (airlineName) {
+        jQuery('#highlighted_airline').text(airlineName).attr('title', airlineName);
+    } else {
+        jQuery('#highlighted_airline').text("n/a").attr('title', '');
     }
 
     jQuery('#highlighted_speed').text(format_speed_long(highlighted.gs, DisplayUnits));

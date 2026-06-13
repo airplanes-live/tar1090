@@ -37,6 +37,10 @@
         </div>
         <div class="infoBlockSection">
           <div>
+            <div class="infoHeading"><span>Airline: </span></div>
+            <div class="infoData"><span id="highlighted_airline">n/a</span></div>
+          </div>
+          <div>
             <div class="infoHeading"><span>Reg.: </span></div>
             <div class="infoData"><span id="highlighted_registration">n/a</span></div>
           </div>
@@ -175,8 +179,16 @@
               <tr>
                 <td>
                   <div class="infoData">
-                    <span title="Country of registration" id="selected_country">n/a</span>
+                    <span class="selected-country-data" style="display:inline-flex;align-items:center;gap:4px"><img id="selected_reg_flag" style="display:none" width="18" height="12"><span title="Country of registration" id="selected_country">n/a</span></span>
                   </div>
+                </td>
+              </tr>
+              <tr id="airline_row" class="hidden">
+                <td>
+                  <div class="infoHeading">
+                    <span title="Airline operating the flight, resolved from the callsign prefix (ICAO airline designator)">Airline: </span>
+                  </div>
+                  <div class="infoData"><span id="selected_airline"></span></div>
                 </td>
               </tr>
               <tr>
