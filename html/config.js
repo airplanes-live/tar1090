@@ -73,10 +73,6 @@
 // VFR_Terminal: "Terminal Area Charts",
 // IFR_AreaLow: "IFR Area Charts",
 // IFR_High: "IFR Enroute High Charts"
-//
-// only with bing key:
-// bing_aerial
-// bing_roads
 
 
 // default these overlays to on for visitors which haven't disabled them in the browser in a previous session
@@ -209,15 +205,6 @@ ColorByAlt = {
 // Show country flags by ICAO addresses?
 //ShowFlags = true;
 
-// Provide a Bing Maps API key here to enable the Bing imagery layer.
-// You can obtain a free key (with usage limits) at
-// https://www.bingmapsportal.com/ (you need a "basic key")
-//
-// Be sure to quote your key:
-//   BingMapsAPIKey = "your key here";
-//
-BingMapsAPIKey = null;
-
 // Provide a Mapbox API key here to enable the Mapbox vector layers.
 // You can obtain a free key (with usage limits) at
 // https://www.mapbox.com/
@@ -225,7 +212,7 @@ BingMapsAPIKey = null;
 // Be sure to quote your key:
 //   MapboxAPIKey = "your key here";
 //
-MapboxAPIKey = null;
+//MapboxAPIKey = null;
 
 // This determines what is up, default is north (0 degrees)
 //mapOrientation = 0;
@@ -273,6 +260,9 @@ MapboxAPIKey = null;
 // show links to various registration websites (not all countries)
 // registrationLinks = true;
 
+// enable callsign-based airline lookup from the operators database
+// airlineLookup = true;
+
 // Filter implausible positions (required speed > Mach 3.5)
 // valid values: true, false, "onlyMLAT" ("" required)
 // positionFilter = true;
@@ -297,13 +287,14 @@ MapboxAPIKey = null;
 //squareMania = false;
 
 // Columns that have a // in front of them are shown.
-/* // remove this line to mofify columns (and the one at the end)
+/* // remove this line to modify columns (and the one at the end)
 HideCols = [
 	"#icao",
 //	"#country",
 //	"#flight",
 //	"#route",
 	"#registration",
+	"#airline",
 //	"#type",
 //	"#squawk",
 //	"#altitude",
