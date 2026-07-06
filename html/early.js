@@ -800,6 +800,8 @@ Toggle.prototype.toggle = function(override, init) {
         }
     }
 
+    TAR && TAR.newUI && TAR.newUI.active && TAR.newUI.syncToggle(this.key, this.state);
+
     if (!init)
         loStore[this.key] = this.state;
 }

@@ -734,10 +734,14 @@ PlaneObject.prototype.getMarkerColor = function(options) {
         l += ColorByAlt.mlat.l;
     }
 
-    if (atcStyle && (this.squawk == '7700' || this.squawk == '7600' || this.squawk == '7500')) {
-        h = 0;
-        s = 100;
-        l = 40;
+    if (atcStyle) {
+        h = 120; s = 90; l = 50;
+        if (this.selected && !SelectedAllPlanes && !onlySelected) {
+            s = 5; l = 95;
+        }
+        if (this.squawk == '7700' || this.squawk == '7600' || this.squawk == '7500') {
+            h = 0; s = 100; l = 45;
+        }
     }
 
     if (h < 0) {
@@ -875,18 +879,31 @@ PlaneObject.prototype.updateIcon = function() {
 
         labelText = "";
         if (atcStyle) {
-            labelText += callsign + '\n';
-            labelText += altString + '\n';
-            labelText += 'x' + this.squawk;
-            if (this.squawk == '7700' || this.squawk == '7600' || this.squawk == '7500') {
-                if (this.squawk == '7700') {
-                    labelText += '\nEMERGENCY';
-                } else if (this.squawk == '7600') {
-                    labelText += '\nNORDO';
-                } else if (this.squawk == '7500') {
-                    labelText += '\nHIJACK';
-                }
-            }
+            let acid = (this.flight && this.flight.trim()) ? this.flight.trim()
+                : (this.registration ? this.registration : this.icao.toUpperCase());
+            let altText;
+            if (alt === 'ground')
+                altText = 'GND';
+            else if (alt == null)
+                altText = '???';
+            else
+                altText = Math.max(0, Math.round(alt / 100)).toString().padStart(3, '0');
+            let trend = NBSP;
+            if (this.vert_rate > 245)
+                trend = UP_TRIANGLE;
+            else if (this.vert_rate < -245)
+                trend = DOWN_TRIANGLE;
+            let spdText = (this.speed == null) ? '??' : Math.round(this.speed / 10).toString().padStart(2, '0');
+            labelText += acid + '\n';
+            labelText += altText + trend + NBSP + spdText;
+            if (this.icaoType)
+                labelText += '\n' + this.icaoType;
+            if (this.squawk == '7700')
+                labelText += '\nEM';
+            else if (this.squawk == '7600')
+                labelText += '\nRF';
+            else if (this.squawk == '7500')
+                labelText += '\nHJ';
         } else if (g.extendedLabels == 3) {
             if (!windLabelsSlim) {
                 labelText += 'Wind' + NBSP;
@@ -968,12 +985,15 @@ PlaneObject.prototype.updateIcon = function() {
     if (this.styleKey != styleKey || !this.marker.getStyle()) {
         this.styleKey = styleKey;
         let style;
+        let fill = labelFill;
+        if (atcStyle && (this.squawk == '7700' || this.squawk == '7600' || this.squawk == '7500'))
+            fill = labelFillEmerg;
         if (labelText) {
             style = {
                 image: this.markerIcon,
                 text: new ol.style.Text({
                     text: labelText,
-                    fill: labelFill,
+                    fill: fill,
                     backgroundFill: bgFill,
                     stroke: labelStrokeNarrow,
                     textAlign: 'left',
@@ -1322,7 +1342,7 @@ PlaneObject.prototype.processTrace = function() {
 
     showTraceExit = false;
 
-    this.checkForDB(this.recentTrace || this.fullTrace);
+    this.checkForDB(this.recentTrace || this.fullTrace, true);
 
     this.dataChanged();
 
@@ -1798,6 +1818,9 @@ function altitudeLines (segment) {
     //let color = 'hsl(' + colorArr[0].toFixed(0) + ', ' + colorArr[1].toFixed(0) + '%, ' + colorArr[2].toFixed(0) + '%)';
 
     let color = hslToRgb(colorArr);
+
+    if (atcStyle)
+        color = '#0B7A0B';
 
     if (monochromeTracks)
         color = monochromeTracks;
@@ -2779,7 +2802,7 @@ PlaneObject.prototype.setTypeData = function() {
         this.typeDescription = `${desc}`;
     if (wtc != null)
         this.wtc = `${wtc}`;
-    if (this.typeLong == null && typeLong != null)
+    if (typeLong != null)
         this.typeLong = `${typeLong}`;
 };
 
@@ -2799,18 +2822,22 @@ PlaneObject.prototype.setTypeFlagsReg = function(data) {
     if (data.r) this.registration = `${data.r}`;
 }
 
-PlaneObject.prototype.checkForDB = function(data) {
+PlaneObject.prototype.checkForDB = function(data, fromTrace) {
     if (!this.dbinfoLoaded && this.icao >= 'ae6620' && this.icao <= 'ae6899') {
         this.icaoType = 'P8 ?';
         this.setTypeData();
     }
     if (data) {
 
-        if (data.desc) this.typeLong = `${data.desc}`;
-        if (data.ownOp) this.ownOp = `${data.ownOp}`;
-        if (data.year) this.year = `${data.year}`;
-
+        // Resolve the ICAO type first so typeLong is populated from the type
+        // database (keyed by the live API type code) before the trace's fields.
         this.setTypeFlagsReg(data);
+
+        // Live API data takes priority over the trace file: trace data may only
+        // fill in db fields that aren't already populated.
+        if (data.desc && !(fromTrace && this.typeLong)) this.typeLong = `${data.desc}`;
+        if (data.ownOp && !(fromTrace && this.ownOp)) this.ownOp = `${data.ownOp}`;
+        if (data.year && !(fromTrace && this.year)) this.year = `${data.year}`;
 
         if (data.r || data.t) {
             this.dbinfoLoaded = true;

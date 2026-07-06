@@ -1413,6 +1413,7 @@ function iconTest() {
     jQuery('#splitter').hide();
     jQuery('#tabs').hide();
     jQuery('#filterButton').hide();
+    jQuery('.ui2-chrome').hide();
     jQuery('.ol-control').hide();
     jQuery('.ol-attribution').show();
     jQuery("#loader").addClass("hidden");

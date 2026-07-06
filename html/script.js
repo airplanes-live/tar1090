@@ -104,6 +104,7 @@ let newWidth = lineWidth;
 let SiteOverride = (SiteLat != null && SiteLon != null);
 let onJumpInput = null;
 let labelFill = null;
+let labelFillEmerg = null;
 let blackFill = null;
 let labelStroke = null;
 let labelStrokeNarrow = null;
@@ -773,6 +774,8 @@ function initialize() {
 
         processQueryToggles();
 
+        TAR.newUI && TAR.newUI.init();
+
         jQuery.when(historyQueued).done(push_history);
 
         if (!nHistoryItems) {
@@ -935,9 +938,10 @@ function earlyInitPage() {
         tempTrailsTimeout = 45;
         SiteCirclesDistances = new Array(5, 10, 20);
         SiteCirclesLineDash = [5, 5];
-        SiteCirclesColors = ['#2b3436', '#2b3436', '#2b3436'];
-        MapType_tar1090 = 'carto_light_all';
-        lineWidth=4;
+        SiteCirclesColors = ['#446666', '#446666', '#446666'];
+        MapType_tar1090 = 'carto_dark_nolabels';
+        lineWidth=2;
+        labelFamily = "'Consolas', 'Menlo', 'Lucida Console', monospace";
         g.enableLabels=true;
     }
 
@@ -2645,6 +2649,7 @@ function ol_map_init() {
     });
 
     OLMap.on(['click', 'dblclick'], function(evt) {
+        if (TAR.newUI && TAR.newUI.measureActive) return;
         let trailHex = null;
         let trailTS = null;
         let planeHex = null;
@@ -2794,6 +2799,7 @@ function showHideButtons() {
         jQuery('#filterButton').hide();
         jQuery('.ol-zoom').hide();
         jQuery('.layer-switcher').hide();
+        jQuery('.ui2-chrome').hide();
     } else {
         jQuery('#header_top').show();
         jQuery('#header_side').show();
@@ -2802,6 +2808,7 @@ function showHideButtons() {
         jQuery('#filterButton').show();
         jQuery('.ol-zoom').show();
         jQuery('.layer-switcher').show();
+        jQuery('.ui2-chrome').show();
     }
 }
 
@@ -3208,6 +3215,12 @@ function initMap() {
                 noMLAT = !noMLAT;
                 loStore['noMLAT'] = noMLAT;
                 console.log('noMLAT = ' + noMLAT);
+                break;
+            case "/":
+                if (TAR.newUI && TAR.newUI.active) {
+                    TAR.newUI.focusSearch();
+                    e.preventDefault();
+                }
                 break;
         }
     }, true);
@@ -4968,6 +4981,7 @@ function buttonActive(id, state) {
         jQuery(id).addClass('inActiveButton');
         jQuery(id).removeClass('activeButton');
     }
+    TAR.newUI && TAR.newUI.active && TAR.newUI.syncButton(id, state);
 }
 
 function toggleIsolation(state, noRefresh) {
@@ -5095,7 +5109,7 @@ function invertMap(evt){
     }
 
     altitudeChart.render = function () {
-        if (toggles['altitudeChart'].state) {
+        if (toggles['altitudeChart'].state && !atcStyle) {
             runAfterLoad(loadLegend);
         } else {
             jQuery('#altitude_chart').hide();
@@ -6446,6 +6460,11 @@ function updateAddressBar() {
         string += ':' + replay.ts.getUTCMinutes().toString().padStart(2,'0');
     }
 
+    for (const mode of ['atcStyle', 'uk_advisory']) {
+        if (usp.has(mode))
+            string += (string ? '&' : '?') + mode;
+    }
+
     if (SelPlanes.length > 0) {
         string += (string ? '&' : '?');
         string += 'icao=' + SelPlanes.map((s) => encodeURIComponent(s.icao)).join(',')
@@ -6926,11 +6945,12 @@ function setLineWidth() {
         }),
     });
 
-    labelFill = new ol.style.Fill({color: 'white' });
+    labelFill = new ol.style.Fill({color: atcStyle ? '#00FF00' : 'white' });
+    labelFillEmerg = new ol.style.Fill({color: '#FF3333' });
     blackFill = new ol.style.Fill({color: 'black' });
     labelStroke = new ol.style.Stroke({color: 'rgba(0,0,0,0.7', width: 4 * globalScale});
     labelStrokeNarrow = new ol.style.Stroke({color: 'rgba(0,0,0,0.7', width: 2.5 * globalScale});
-    bgFill = new ol.style.Stroke({color: 'rgba(0,0,0,0.25'});
+    bgFill = new ol.style.Stroke({color: atcStyle ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,0.25'});
 }
 let lastCallLocationChange = 0;
 function onLocationChange(position) {
@@ -8065,10 +8085,11 @@ function initReplay(chunk, data) {
 }
 
 function setReplayTimeHint(date) {
+    jQuery('#replayTimeZone').html('');
     if (true || utcTimesHistoric) {
-        jQuery("#replayDateHintLocal").html(TIMEZONE + " Date: " + lDateString(date));
-        jQuery("#replayDateHint").html("" + zDateString(date));
-        jQuery("#replayTimeHint").html("UTC:" + NBSP + zuluTime(date) + ' / ' + TIMEZONE + ":" + NBSP + localTime(date));
+        jQuery("#replayDateHint").html("UTC: " + zDateString(date) + '<br/>' + TIMEZONE + ": " + lDateString(date));
+        //jQuery("#replayDateHintLocal").html(TIMEZONE + " Date: " + lDateString(date));
+        jQuery("#replayTimeHint").html("UTC:" + NBSP + zuluTime(date) + '<br/>' + TIMEZONE + ":" + NBSP + localTime(date));
     } else {
         jQuery("#replayDateHintLocal").html("");
         jQuery("#replayDateHint").html("Date: " + lDateString(date));

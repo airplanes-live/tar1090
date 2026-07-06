@@ -1,8 +1,6 @@
-Modified and developed by Matthias Wirth <matthias.wirth@gmail.com>
+Modified and developed by Alex L. <alexander@airplanes.live>
 
-Based on code from https://github.com/flightaware/dump1090
-Thank you Flightaware for developing Open Source!
-
+Based on code from https://github.com/wiedehopf/tar1090
 
 This version of tar1090 is licensed under the GPL, v2 or later.
 
@@ -69,7 +67,7 @@ modification follow.
                     GNU GENERAL PUBLIC LICENSE
    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 
-  0. This License applies to any program or other work which contains
+  1. This License applies to any program or other work which contains
 a notice placed by the copyright holder saying it may be distributed
 under the terms of this General Public License.  The "Program", below,
 refers to any such program or work, and a "work based on the Program"
