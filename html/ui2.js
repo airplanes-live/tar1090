@@ -225,6 +225,7 @@ function buildBar() {
         + '    <button id="ui2_menu_tools_btn" type="button" data-menu="tools"><span class="ui2-icon">' + I.route + '</span><span class="ui2-menubtn-label">Tools</span><span class="ui2-icon">' + I.caret + '</span></button>'
         + '  </nav>'
         + '  <div id="ui2_actions">'
+        + '    <button id="ui2_home" type="button" aria-label="Reset map view" title="Home / Reset map view (H)"><span class="ui2-icon">' + I.home + '</span></button>'
         + '    <button id="ui2_bookmarks_btn" type="button" data-menu="bookmarks" aria-label="Bookmarks" title="Bookmarks"><span class="ui2-icon">' + I.star + '</span></button>'
         + '    <button id="ui2_replay" type="button" aria-label="Replay history" title="Replay history (Y)"><span class="ui2-icon">' + I.history + '</span></button>'
         + '    <button id="ui2_layers" type="button" aria-label="Map layers" title="Map layers"><span class="ui2-icon">' + I.layers + '</span></button>'
@@ -240,6 +241,7 @@ function buildBar() {
 
     jQuery('#ui2_hamburger').on('click', function() { this.blur(); openSheet(); });
 
+    jQuery('#ui2_home').on('click', function() { this.blur(); resetMap(); });
     jQuery('#ui2_replay').on('click', function() { this.blur(); toggleReplay(); });
     jQuery('#ui2_layers').on('click', function() { this.blur(); openLayerSwitcher(); });
     jQuery('#ui2_settings_btn').on('click', function() { this.blur(); openModal(); });
