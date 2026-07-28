@@ -1342,7 +1342,7 @@ PlaneObject.prototype.processTrace = function() {
 
     showTraceExit = false;
 
-    this.checkForDB(this.recentTrace || this.fullTrace, true);
+    this.checkForDB(this.recentTrace || this.fullTrace);
 
     this.dataChanged();
 
@@ -2802,7 +2802,7 @@ PlaneObject.prototype.setTypeData = function() {
         this.typeDescription = `${desc}`;
     if (wtc != null)
         this.wtc = `${wtc}`;
-    if (typeLong != null)
+    if (this.typeLong == null && typeLong != null)
         this.typeLong = `${typeLong}`;
 };
 
@@ -2822,22 +2822,18 @@ PlaneObject.prototype.setTypeFlagsReg = function(data) {
     if (data.r) this.registration = `${data.r}`;
 }
 
-PlaneObject.prototype.checkForDB = function(data, fromTrace) {
+PlaneObject.prototype.checkForDB = function(data) {
     if (!this.dbinfoLoaded && this.icao >= 'ae6620' && this.icao <= 'ae6899') {
         this.icaoType = 'P8 ?';
         this.setTypeData();
     }
     if (data) {
 
-        // Resolve the ICAO type first so typeLong is populated from the type
-        // database (keyed by the live API type code) before the trace's fields.
-        this.setTypeFlagsReg(data);
+        if (data.desc) this.typeLong = `${data.desc}`;
+        if (data.ownOp) this.ownOp = `${data.ownOp}`;
+        if (data.year) this.year = `${data.year}`;
 
-        // Live API data takes priority over the trace file: trace data may only
-        // fill in db fields that aren't already populated.
-        if (data.desc && !(fromTrace && this.typeLong)) this.typeLong = `${data.desc}`;
-        if (data.ownOp && !(fromTrace && this.ownOp)) this.ownOp = `${data.ownOp}`;
-        if (data.year && !(fromTrace && this.year)) this.year = `${data.year}`;
+        this.setTypeFlagsReg(data);
 
         if (data.r || data.t) {
             this.dbinfoLoaded = true;
