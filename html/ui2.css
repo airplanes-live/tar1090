@@ -181,20 +181,20 @@ body.ui2 #histDatePicker {
 }
 
 body.ui2 #selected_infoblock .sectionTitle {
+    box-sizing: border-box;
     background: none;
     color: var(--TXTCOLOR1);
     font-weight: bold;
     font-size: var(--FS1);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    padding: calc(8px * var(--SCALE)) calc(12px * var(--SCALE)) calc(2px * var(--SCALE));
+    padding: calc(5px * var(--SCALE)) calc(12px * var(--SCALE));
     border-bottom: 1px solid var(--BGCOLOR2);
 }
 
 body.ui2 #selected_infoblock #history_collapse + .sectionTitle {
     border-top: 1px solid var(--BGCOLOR2);
-    margin-top: calc(8px * var(--SCALE));
-    padding-top: calc(12px * var(--SCALE));
+    margin-top: calc(12px * var(--SCALE));
 }
 
 body.ui2 #export_kml_geom,
