@@ -42,7 +42,7 @@ let SiteName    = "My Radar Site"; // tooltip of the marker
 // Update GPS location (keep map centered on GPS location)
 let updateLocation = false;
 
-// Color controls for the range outline
+// Color controls for the heywhatsthat upintheair range outline
 let range_outline_color = '#0000DD';
 let range_outline_alpha = 1.0;
 let range_outline_width = 1.7;
@@ -50,7 +50,7 @@ let range_outline_colored_by_altitude = false;
 // NOTE: dashed lines cause slowdown when zooming in, not recommended
 let range_outline_dash = null; // null - solid line, [5, 5] - dashed line with 5 pixel lines and spaces in between
 
-// Style controls for the actal range outline:
+// Style controls for the actual range outline (dynamic, by default 24h retention, see readsb options)
 let actual_range_outline_color = '#00596b';
 let actual_range_outline_width = 1.7;
 // NOTE: dashed lines cause slowdown when zooming in, not recommended
@@ -222,13 +222,7 @@ let FlagPath = "";
 // Set to false to disable the ChartBundle base layers (US coverage only)
 let ChartBundleLayers = true;
 
-// Provide a Bing Maps API key here to enable the Bing imagery layer.
-// You can obtain a free key (with usage limits) at
-// https://www.bingmapsportal.com/ (you need a "basic key")
-//
-// Be sure to quote your key:
-//   BingMapsAPIKey = "your key here";
-//
+// UNUSED, doesn't work
 let BingMapsAPIKey = null;
 
 // Provide a Mapbox API key here to enable the Mapbox vector layers.
@@ -256,6 +250,7 @@ let utcTimesHistoric = true;
 // Only display labels when zoomed in this far:
 let labelZoom = 0;
 let labelZoomGround = 14.8;
+let labelZoomAIS = 11.8;
 
 // font family for labels, default bold, could be empty or italic as well
 let labelStyle = 'bold';
@@ -288,6 +283,9 @@ let planespottersLinks = false;
 // show links to various registration websites (not all countries)
 let registrationLinks = true;
 
+// enable callsign-based airline lookup from the operators database
+let airlineLookup = true;
+
 // Filter implausible positions (required speed > Mach 2.5)
 // valid values: true, false, "onlyMLAT" ("" required)
 let positionFilter = false;
@@ -318,6 +316,7 @@ let HideCols = [
 //	"#flight",
 //	"#route",
 	"#registration",
+	"#airline",
 //	"#type",
 //	"#squawk",
 //	"#altitude",

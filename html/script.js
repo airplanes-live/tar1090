@@ -137,7 +137,7 @@ let lastRequestBox = '';
 let nextQuerySelected = 0;
 let enableDynamicCachebusting = false;
 g.lastRefreshInt = 1000;
-let reapTimeout = globeIndex ? 240 : 480;
+let reapTimeout = globeIndex ? 4 * 60 : 15 * 60;
 
 
 let baroCorrectQNH = 1013.25;
@@ -215,6 +215,25 @@ function processAircraft(ac, init, uat) {
     // Do we already have this plane object in g.planes?
     // If not make it.
     let plane = g.planes[hex]
+
+    if (!noVanish && plane && g.historyKeep && g.historyKeep[hex] && type != 'adsc') {
+        if (now - plane.last_info_server > reapTimeout) {
+
+            //console.log(`deleting ${hex} at ${now}`);
+
+            delete g.planes[plane.icao];
+            for (let i = 0; i < g.planesOrdered.length; ++i) {
+                if (g.planesOrdered[i].icao == hex) {
+                    g.planesOrdered.splice(i, 1);
+                    break;
+                }
+            }
+
+            plane.destroy();
+            plane = null;
+        }
+    }
+
 
     if (!plane) {
         plane = new PlaneObject(hex);
@@ -474,6 +493,9 @@ function fetchDone(data) {
     }
 }
 
+let operatorsCache = null;
+let operatorsCacheLoaded = false;
+
 function db_load_type_cache() {
     return jQuery.getJSON(databaseFolder + "/icao_aircraft_types2.js").done(function(typeLookupData) {
         g.type_cache = typeLookupData;
@@ -481,6 +503,69 @@ function db_load_type_cache() {
             g.planesOrdered[i].setTypeData();
         }
     });
+}
+
+function db_load_operators_cache() {
+    if (operatorsCacheLoaded) {
+        return jQuery.Deferred().resolve(operatorsCache).promise();
+    }
+    operatorsCacheLoaded = true;
+    return jQuery.getJSON(databaseFolder + "/operators.js").done(function(operatorData) {
+        operatorsCache = operatorData || {};
+    }).fail(function() {
+        operatorsCache = {};
+    });
+}
+
+function lookupAirlineForCallsign(callsign, registration) {
+    if (!airlineLookup || !operatorsCache) {
+        return null;
+    }
+    if (!callsign) {
+        return null;
+    }
+
+    // borrows approach used in FlightGazer, probably could be improved
+    let cs = callsign.replace(/\s/g, '');
+    if (cs.length < 4) {
+        return null;
+    }
+    cs = cs.toUpperCase();
+    let first4 = cs.slice(0, 4);
+    if (/^[A-Z]{4}$/.test(first4)) {
+        return null;
+    }
+    let prefix = cs.slice(0, 3);
+    if (!/^[A-Z]{3}$/.test(prefix)) {
+        return null;
+    }
+    if (registration) {
+        let regNormalized = registration.replace(/[\-\+]/g, '').toUpperCase();
+        if (regNormalized === cs) {
+            return null;
+        }
+    }
+    return operatorsCache[prefix] || null;
+}
+
+function updateSelectedAirline(selected) {
+    if (!airlineLookup) {
+        jQuery('#selected_airline_row').addClass('hidden');
+        jQuery('#selected_airline').updateText('n/a');
+        jQuery('#selected_airline').attr('title', 'Airline lookup disabled');
+        return;
+    }
+    jQuery('#selected_airline_row').removeClass('hidden');
+
+    let operatorData = selected.getAirline ? selected.getAirline() : lookupAirlineForCallsign(selected.name, selected.registration);
+    if (operatorData) {
+        let title = operatorData.c ? operatorData.c + (operatorData.r ? ' / ' + '"' + operatorData.r + '"' : '') : (operatorData.r || '');
+        jQuery('#selected_airline').updateText(operatorData.n || 'n/a');
+        jQuery('#selected_airline').attr('title', title || '');
+    } else {
+        jQuery('#selected_airline').updateText('n/a');
+        jQuery('#selected_airline').attr('title', 'No airline match');
+    }
 }
 
 g.afterLoadDone = false;
@@ -517,7 +602,7 @@ function afterFirstFetch() {
 
         geoMag = geoMagFactory(cof2Obj());
 
-        db_load_type_cache().always(function() {
+        jQuery.when(db_load_type_cache(), db_load_operators_cache()).always(function() {
             refresh();
         });
 
@@ -2257,8 +2342,10 @@ function processBoat(feature, now, last) {
 
     ac.type = 'ais';
     ac.gs = pr.speed;
-    ac.flight = pr.callsign;
-    ac.r = pr.shipname;
+    // Maritime callsign is the ITU ship-station license - a registration-
+    // role identifier, not an operational one. A vessel is hailed by NAME.
+    ac.flight = pr.shipname || pr.callsign || String(pr.mmsi);
+    ac.r = pr.callsign;
     ac.seen = now - pr.last_signal;
 
     ac.messages  = pr.count;
@@ -2321,7 +2408,6 @@ function startPage() {
 
     if (replay) {
         showReplayBar();
-        loadReplay(replay.ts);
     }
 
     if (heatmap) {
@@ -2827,6 +2913,9 @@ function initMap() {
     if ((globeIndex && aggregator) || filterUuid) {
         jQuery('#dump1090_message_rate_td').hide();
     }
+    if ((globeIndex && aggregator) || (receiverJson && receiverJson.haveReplay)) {
+        jQuery('#RP').show();
+    }
 
     locationDotLayer = new ol.layer.Vector({
         name: 'locationDot',
@@ -3160,6 +3249,9 @@ function initMap() {
             case "Y":
                 showReplayBar();
                 break;
+            case "Y":
+                showReplayBar();
+                break;
             case "u":
                 toggleMilitary();
                 break;
@@ -3459,6 +3551,7 @@ function refreshPhoto(selected) {
 let selCall = null;
 let selIcao = null;
 let selReg = null;
+let selAirline = null;
 
 let somethingSelected = false;
 // Refresh the detail window about the plane
@@ -3555,6 +3648,9 @@ function refreshSelected() {
             jQuery('#selected_registration').updateText("n/a");
         }
     }
+
+    updateSelectedAirline(selected);
+
     let dbFlags = "";
     if (selected.ladd)
         dbFlags += ' <a class="link" target="_blank" href="https://www.faa.gov/pilots/ladd/" rel="noreferrer">LADD</a> / ';
@@ -3941,6 +4037,18 @@ function refreshHighlighted() {
         jQuery('#highlighted_registration').text("n/a");
     }
 
+    let highlightedOperator = null;
+    if (highlighted.getAirline) {
+        highlightedOperator = highlighted.getAirline();
+    } else {
+        highlightedOperator = lookupAirlineForCallsign(highlighted.name, highlighted.registration);
+    }
+    if (highlightedOperator) {
+        jQuery('#highlighted_airline').text(highlightedOperator.n || 'n/a');
+    } else {
+        jQuery('#highlighted_airline').text('n/a');
+    }
+
     jQuery('#highlighted_speed').text(format_speed_long(highlighted.gs, DisplayUnits));
 
     jQuery("#highlighted_altitude").text(format_altitude_long(adjust_baro_alt(highlighted.altitude), highlighted.vert_rate, DisplayUnits));
@@ -4027,6 +4135,20 @@ function refreshFeatures() {
         return xf - yf;
     }
 
+    function compareAlphaCI(xa, ya) {
+        // only used by the airline column for now
+        // assumes ASCII strings from the database
+        if (xa === ya)
+            return 0;
+        xa = xa ? xa.toLowerCase() : '';
+        ya = ya ? ya.toLowerCase() : '';
+        if (xa < ya)
+            return -1;
+        if (xa > ya)
+            return 1;
+        return 0;
+    }
+
     const cols = planeMan.cols = {};
 
     cols.icao = {
@@ -4052,6 +4174,22 @@ function refreshFeatures() {
         },
         html: flightawareLinks,
         text: 'Callsign' };
+    cols.airline = {
+        text: 'Airline',
+        sort: function () { sortBy('airline', compareAlphaCI, function(x) {
+            let operatorData = x.getAirline ? x.getAirline() : lookupAirlineForCallsign(x.name, x.registration);
+            return operatorData ? (operatorData.n || '') : null;
+        }); },
+        value: function(plane) {
+            let operatorData = plane.getAirline ? plane.getAirline() : lookupAirlineForCallsign(plane.name, plane.registration);
+            if (!operatorData) {
+                return '';
+            }
+            let title = operatorData.c ? operatorData.c + (operatorData.r ? ' / ' + '&quot;' + operatorData.r + '&quot;': '') : (operatorData.r || '');
+            return '<span title="' + title + '">' + (operatorData.n || '') + '</span>';
+        },
+        html: true
+    };
     if (routeApiUrl) {
         cols.route = {
             sort: function () { sortBy('route', compareAlpha, function(x) { return x.routeColumn }); },
@@ -6563,7 +6701,7 @@ function updateAddressBar() {
     }
     //console.log(shareLink);
 
-    if (!string && !usp.has('showTrace') && !usp.has('startTrace') && !usp.has('endTrace') && !usp.has('icao')) {
+    if (!string && !usp.has('showTrace') && !usp.has('icao')) {
         string = initialURL;
     } else {
         string = pathName + string;
@@ -8478,10 +8616,12 @@ function showReplayBar(){
     showingReplayBar = !showingReplayBar;
     if (!showingReplayBar){
         jQuery("#replayBar").hide();
+        clearTimeout(refreshId);
         replay = null;
         jQuery('#map_canvas').height('100%');
         jQuery('#sidebar_canvas').height('100%');
         jQuery("#selected_showTrace_hide").show();
+        fetchData({force: true});
     } else {
         jQuery("#replayBar").show();
         jQuery("#replayBar").css('display', 'grid');
@@ -8490,7 +8630,6 @@ function showReplayBar(){
         jQuery('#sidebar_canvas').height('calc(100% - 110px)');
         if (!replay) {
             replay = replayDefaults(new Date());
-            replay.playing = false;
         }
         //ts.setUTCMinutes((parseInt((ts.getUTCMinutes() + 7.5)/15) * 15) % 60);
         let datepickerOptions = {
@@ -8556,7 +8695,11 @@ function showReplayBar(){
         jQuery('#replaySpeedHint').text('Speed: ' + replay.speed + 'x');
 
         jQuery("#selected_showTrace_hide").hide();
+
+        loadReplay(replay.ts);
     }
+
+    updateAddressBar();
 };
 
 function timeoutFetch() {
@@ -8768,11 +8911,20 @@ function setAutoselect() {
     autoSelectClosest();
 }
 function registrationLink(plane) {
-    if (plane.country === 'Brazil') {
-        return `https://sistemas.anac.gov.br/aeronaves/cons_rab_resposta_en.asp?textMarca=${plane.registration}`;
-    } else {
-        return '';
-    }
+    
+    const countryLinks = {
+        Brazil: (reg) => `https://aeronaves.anac.gov.br/aeronaves/cons_rab_resposta_en.asp?textMarca=${reg}`,
+        Australia: (reg) => `https://www.casa.gov.au/search-centre/aircraft-register?reg=${reg.replace(/^VH-/, '')}`,
+        Jamaica: (reg) => `https://www.jcaa.gov.jm/aircraft-registry/${reg}`,
+        Montenegro: (reg) => `https://www.caa.me/en/registri?field_registarska_oznaka1_value=${reg}`,
+        Norway: (reg) => `https://www.luftfartstilsynet.no/aktorer/norges-luftfartoyregister/registrerte-luftfartoy/?mark=${reg}`,
+        Iceland: (reg) => `https://island.is/en/aircraft-registry?aq=${reg.replace(/^TF-/, '')}`,
+        "New Zealand": (reg) => `https://www.aviation.govt.nz/aircraft/aircraft-registration/aircraft-register-search/ShowDetails/${reg.replace(/^ZK-/, '')}`,
+        "United States": (reg) => `https://registry.faa.gov/AircraftInquiry/Search/NNumberResult?nNumberTxt=${reg.slice(1)}`
+    };
+
+    const generator = countryLinks[plane.country];
+    return generator ? generator(plane.registration) : '';
 }
 
 
