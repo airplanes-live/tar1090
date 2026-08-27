@@ -834,6 +834,7 @@ function createBaseLayers() {
 
     // Taken from https://www.ais.pansa.pl/mil/pliki/EP_ENR_2_4_en.pdf
     europe.push(createGeoJsonLayer('PL AWACS Orbits', 'plawacsorbits', 'geojson/PL_Mil_AWACS_Orbits.geojson', 'rgba(252, 186, 3, 0.3)', 'rgba(252, 186, 3, 1)', false));
+    europe.push(createGeoJsonLayer('PL A2A Refueling', 'pla2arefueling', 'geojson/PL_Mil_AAR_Zones.geojson', 'rgba(52, 50, 168, 0.3)', 'rgba(52, 50, 168, 1)'));
 
     // Taken from https://english.defensie.nl/binaries/defence/documenten/publications/2022/12/14/milaip-01-23-part-1-gen-part-2-enr/MILAIP_01_2023split_GEN_ENR.pdf
     europe.push(createGeoJsonLayer('NL AWACS Orbits', 'nlawacsorbits', 'geojson/NL_Mil_AWACS_Orbits.geojson', 'rgba(252, 186, 3, 0.3)', 'rgba(252, 186, 3, 1)', false));
