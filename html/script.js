@@ -1024,7 +1024,7 @@ function earlyInitPage() {
         SiteCirclesDistances = new Array(5, 10, 20);
         SiteCirclesLineDash = [5, 5];
         SiteCirclesColors = ['#446666', '#446666', '#446666'];
-        MapType_tar1090 = 'carto_dark_nolabels';
+        MapType_tar1090 = 'OpenFreeMapOfflineDark';
         lineWidth=2;
         labelFamily = "'Consolas', 'Menlo', 'Lucida Console', monospace";
         g.enableLabels=true;
@@ -9339,13 +9339,13 @@ function mapTypeSettings() {
         layerDimFactor = 0.5;
     } else if (MapType_tar1090 == 'gibs') {
         layerDimFactor = 0.5;
-    } else if (MapType_tar1090.startsWith('carto_raster')) {
+    } else if (MapType_tar1090.startsWith('OpenFreeMapLiberty')) {
         layerDimFactor = 0.70;
         layerExtraContrast = 0.6;
-    } else if (MapType_tar1090.startsWith('carto_light')) {
+    } else if (MapType_tar1090.startsWith('OpenFreeMapOfflineLight')) {
         layerDimFactor = 0.80;
         layerExtraContrast = 0.2;
-    } else if (MapType_tar1090.startsWith('carto_dark')) {
+    } else if (MapType_tar1090.startsWith('OpenFreeMapOfflineDark')) {
         layerDimFactor = 0.25;
         layerExtraContrast = 0.05;
     } else {

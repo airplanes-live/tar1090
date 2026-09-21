@@ -3,8 +3,6 @@
 
 // Base layers configuration
 //			"url" : "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-//			"url" : "http://{a-c}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
-//			"url" : "http://{a-c}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
 //			"url" : "https://korona.geog.uni-heidelberg.de/tiles/roads/x={x}&y={y}&z={z}"
 //			"url" : "https://korona.geog.uni-heidelberg.de/tiles/asterh/x={x}&y={y}&z={z}"
 //			"url" : "https://{a-c}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png"
@@ -69,21 +67,6 @@ function createBaseLayers() {
         }),
         name: 'osm',
         title: 'OpenStreetMap',
-        type: 'base',
-    }));
-
-    let basemap_id = "rastertiles/voyager";
-    world.push(new ol.layer.Tile({
-        source: new ol.source.OSM({
-            "url" : "https://{a-d}.basemaps.cartocdn.com/"+ basemap_id + "/{z}/{x}/{y}.png",
-            "attributions" : 'Powered by <a href="https://carto.com">CARTO.com</a>'
-            + ' using data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
-            attributionsCollapsible: false,
-            maxZoom: 15,
-            transition: tileTransition,
-        }),
-        name: "carto_" + basemap_id,
-        title: 'CARTO.com English',
         type: 'base',
     }));
 
@@ -346,33 +329,6 @@ function createBaseLayers() {
         title: 'GIBS Clouds ' + yesterday,
         type: 'base',
     }));
-    // carto.com basemaps, see the following URLs for details on them:
-    // http://basemaps.cartocdn.com
-    // https://github.com/CartoDB/cartodb/wiki/BaseMaps-available
-
-    let basemaps = [ "dark_all", "dark_nolabels",
-        "light_all", "light_nolabels"
-    ]
-
-    if (1) {
-        for (let i in basemaps) {
-            let basemap_id = basemaps[i];
-
-            world.push(new ol.layer.Tile({
-                source: new ol.source.OSM({
-                    "url" : "https://{a-d}.basemaps.cartocdn.com/"+ basemap_id + "/{z}/{x}/{y}.png",
-                    "attributions" : 'Powered by <a href="https://carto.com">CARTO.com</a>'
-                    + ' using data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
-                    attributionsCollapsible: false,
-                    maxZoom: 15,
-                    transition: tileTransition,
-                }),
-                name: "carto_" + basemap_id,
-                title: 'CARTO.com ' + basemap_id,
-                type: 'base',
-            }));
-        }
-    }
 
     if (loStore['mapboxKey'] != undefined)
         MapboxAPIKey = loStore['mapboxKey'];

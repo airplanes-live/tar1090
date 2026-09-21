@@ -64,10 +64,6 @@
 // esri
 // esri_gray
 // esri_streets
-// carto_light_all
-// carto_light_nolabels
-// carto_dark_all
-// carto_dark_nolabels
 // gibs: clouds
 // VFR_Sectional: "Sectional Charts",
 // VFR_Terminal: "Terminal Area Charts",
